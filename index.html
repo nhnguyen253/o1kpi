@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01 Internal OS — KPIs</title>
+<style>
+:root {
+  --bg:#0b0d10;
+  --panel:#11151a;
+  --panel-2:#171c22;
+  --panel-3:#0f1318;
+  --line:#2a313a;
+  --line-soft:#36404c;
+  --text:#f4f7fb;
+  --muted:#95a0ad;
+  --accent:#7b8cff;
+  --accent-soft:#202749;
+  --danger:#ef6b73;
+  --shadow:0 18px 48px rgba(0,0,0,.35);
+  --radius:14px;
+}
+* { box-sizing:border-box; }
+html,body { height:100%; }
+body {
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.45 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+button,input,textarea,select { font:inherit; }
+button { cursor:pointer; }
+a { color:inherit; }
+
+.app {
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:220px 1fr;
+}
+.sidebar {
+  background:linear-gradient(180deg, #0f1216 0%, #0d1014 100%);
+  border-right:1px solid var(--line);
+  padding:22px 14px;
+}
+.brand {
+  padding:0 10px 18px;
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:-.02em;
+}
+.brand small {
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+.nav {
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+.nav button {
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  text-align:left;
+  padding:11px 12px;
+  border-radius:10px;
+}
+.nav button:hover,
+.nav button.active {
+  background:var(--panel-2);
+  color:var(--text);
+}
+.sidebar-note {
+  margin-top:18px;
+  padding:12px 10px 0;
+  border-top:1px solid var(--line);
+  color:var(--muted);
+  font-size:12px;
+}
+
+.main {
+  min-width:0;
+}
+.topbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  padding:18px 24px;
+  border-bottom:1px solid var(--line);
+  background:rgba(11,13,16,.92);
+  backdrop-filter:blur(10px);
+  position:sticky;
+  top:0;
+  z-index:15;
+}
+.title h1 {
+  margin:0;
+  font-size:20px;
+  letter-spacing:-.02em;
+}
+.title p {
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+.actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.btn {
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--text);
+  padding:9px 12px;
+  border-radius:10px;
+}
+.btn:hover { border-color:#44505d; }
+.btn.primary {
+  background:var(--accent);
+  border-color:var(--accent);
+  color:white;
+}
+
+.content {
+  padding:22px 24px 28px;
+}
+.view { display:none; }
+.view.active { display:block; }
+
+.metrics {
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:12px;
+  margin-bottom:14px;
+}
+.metric, .card, .person-card, .tree-shell {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+.metric {
+  padding:15px 16px;
+}
+.metric .label {
+  color:var(--muted);
+  font-size:11px;
+}
+.metric .value {
+  margin-top:5px;
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:-.03em;
+}
+
+.grid2 {
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:14px;
+}
+.card {
+  padding:16px;
+}
+.card h3 {
+  margin:0 0 12px;
+  font-size:14px;
+}
+.progress-row {
+  display:grid;
+  grid-template-columns:1fr 90px 44px;
+  gap:10px;
+  align-items:center;
+  margin:12px 0;
+}
+.track {
+  height:8px;
+  background:#232a33;
+  border-radius:999px;
+  overflow:hidden;
+}
+.track > div {
+  height:100%;
+  background:var(--accent);
+}
+.muted {
+  color:var(--muted);
+  font-size:11px;
+}
+.log-item {
+  padding:10px 0;
+  border-top:1px solid var(--line);
+}
+.log-item:first-child {
+  border-top:0;
+  padding-top:0;
+}
+
+.section-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  margin-bottom:12px;
+}
+.section-head h2,
+.section-head h3 {
+  margin:0;
+  font-size:18px;
+}
+.section-head p {
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.tree-shell {
+  padding:14px;
+}
+.tree-toolbar {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+.tree-toolbar-left,
+.tree-toolbar-right {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.tree-pill {
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  color:var(--muted);
+  font-size:12px;
+  padding:7px 10px;
+  border-radius:999px;
+}
+.tree-search {
+  width:220px;
+  max-width:100%;
+  background:var(--panel-2);
+  color:var(--text);
+  border:1px solid var(--line);
+  padding:8px 10px;
+  border-radius:10px;
+}
+
+.tree-viewport {
+  position:relative;
+  height:min(72vh, 860px);
+  min-height:540px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(123,140,255,.10) 1px, transparent 0) 0 0 / 26px 26px,
+    linear-gradient(180deg, #0d1116 0%, #0b0f14 100%);
+  overflow:auto;
+  cursor:grab;
+  scroll-behavior:smooth;
+}
+.tree-viewport.dragging {
+  cursor:grabbing;
+  user-select:none;
+}
+.tree-canvas {
+  min-width:max-content;
+  width:fit-content;
+  padding:50px 120px 120px;
+  margin:0 auto;
+}
+.tree {
+  display:flex;
+  justify-content:center;
+}
+.tree ul {
+  padding-top:32px;
+  position:relative;
+  display:flex;
+  justify-content:center;
+  gap:26px;
+  margin:0;
+}
+.tree li {
+  list-style:none;
+  text-align:center;
+  position:relative;
+  padding:32px 6px 0;
+}
+.tree li::before,
+.tree li::after {
+  content:"";
+  position:absolute;
+  top:0;
+  right:50%;
+  border-top:1px solid var(--line-soft);
+  width:50%;
+  height:32px;
+}
+.tree li::after {
+  right:auto;
+  left:50%;
+  border-left:1px solid var(--line-soft);
+}
+.tree li:only-child::before,
+.tree li:only-child::after {
+  display:none;
+}
+.tree li:only-child {
+  padding-top:0;
+}
+.tree li:first-child::before,
+.tree li:last-child::after {
+  border:0;
+}
+.tree li:last-child::before {
+  border-right:1px solid var(--line-soft);
+  border-radius:0 8px 0 0;
+}
+.tree li:first-child::after {
+  border-radius:8px 0 0 0;
+}
+.tree ul ul::before {
+  content:"";
+  position:absolute;
+  top:0;
+  left:50%;
+  border-left:1px solid var(--line-soft);
+  width:0;
+  height:32px;
+}
+
+.node {
+  min-width:170px;
+  max-width:220px;
+  text-align:left;
+  display:inline-block;
+  background:linear-gradient(180deg, #171c23 0%, #12171e 100%);
+  border:1px solid #28303a;
+  border-radius:14px;
+  padding:12px;
+  box-shadow:0 10px 28px rgba(0,0,0,.25);
+  transition:.16s ease;
+  cursor:pointer;
+}
+.node:hover {
+  transform:translateY(-1px);
+  border-color:#556272;
+}
+.node.selected {
+  border-color:var(--accent);
+  box-shadow:0 0 0 2px rgba(123,140,255,.12), 0 10px 28px rgba(0,0,0,.25);
+}
+.node.root {
+  background:linear-gradient(180deg, #2b3468 0%, #202749 100%);
+  border-color:#4655a3;
+}
+.node-title {
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+  letter-spacing:-.01em;
+}
+.node-progress {
+  height:5px;
+  margin-top:10px;
+  background:#252c35;
+  border-radius:999px;
+  overflow:hidden;
+}
+.node-progress > div {
+  height:100%;
+  background:var(--accent);
+}
+.chips {
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-top:9px;
+}
+.chip {
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  background:rgba(123,140,255,.12);
+  color:#cad0ff;
+  border:1px solid rgba(123,140,255,.18);
+  border-radius:999px;
+  padding:2px 7px;
+  font-size:10px;
+}
+.chip .count {
+  opacity:.7;
+}
+.node-meta {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:9px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.people-grid {
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:12px;
+}
+.person-card {
+  padding:16px;
+  cursor:pointer;
+}
+.person-card:hover {
+  border-color:#485260;
+}
+.person-top {
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+.avatar {
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  display:grid;
+  place-items:center;
+  background:var(--accent-soft);
+  color:white;
+  font-weight:700;
+}
+.person-card h4 {
+  margin:0;
+  font-size:15px;
+}
+.person-card p {
+  margin:2px 0 0;
+  color:var(--muted);
+  font-size:12px;
+}
+.person-stats {
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:8px;
+  margin-top:14px;
+}
+.stat {
+  padding:9px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--panel-2);
+}
+.stat b {
+  display:block;
+  font-size:16px;
+}
+.stat span {
+  font-size:10px;
+  color:var(--muted);
+}
+
+.table-card {
+  padding:8px 16px 16px;
+}
+table {
+  width:100%;
+  border-collapse:collapse;
+}
+th, td {
+  text-align:left;
+  padding:11px 10px;
+  border-bottom:1px solid var(--line);
+  font-size:12px;
+  vertical-align:top;
+}
+th {
+  color:var(--muted);
+  font-size:11px;
+  font-weight:600;
+}
+
+.drawer {
+  position:fixed;
+  top:0;
+  right:-460px;
+  width:440px;
+  max-width:94vw;
+  height:100vh;
+  background:#0f1318;
+  border-left:1px solid var(--line);
+  box-shadow:var(--shadow);
+  transition:right .22s ease;
+  z-index:30;
+  overflow:auto;
+}
+.drawer.open {
+  right:0;
+}
+.drawer-head {
+  position:sticky;
+  top:0;
+  background:#0f1318;
+  border-bottom:1px solid var(--line);
+  padding:16px 18px;
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  z-index:3;
+}
+.drawer-head b {
+  font-size:16px;
+}
+.drawer-body {
+  padding:16px 18px 22px;
+}
+.field {
+  margin-bottom:15px;
+}
+.field label {
+  display:block;
+  margin-bottom:6px;
+  color:var(--muted);
+  font-size:11px;
+}
+input, textarea, select {
+  width:100%;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--text);
+  border-radius:10px;
+  padding:9px 10px;
+}
+textarea {
+  min-height:110px;
+  resize:vertical;
+}
+.two {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+.checks {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+.check {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  background:var(--panel-2);
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+.check input {
+  width:auto;
+}
+.callout {
+  margin-top:8px;
+  padding:10px 12px;
+  border-left:3px solid var(--accent);
+  background:rgba(123,140,255,.10);
+  border-radius:8px;
+  font-size:12px;
+  color:#d6ddff;
+}
+.overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.38);
+  z-index:25;
+  display:none;
+}
+.overlay.show {
+  display:block;
+}
+
+@media (max-width: 1024px) {
+  .metrics { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .grid2 { grid-template-columns:1fr; }
+}
+@media (max-width: 860px) {
+  .app { grid-template-columns:1fr; }
+  .sidebar {
+    padding:12px;
+    border-right:0;
+    border-bottom:1px solid var(--line);
+  }
+  .brand { padding:0 8px 12px; }
+  .nav {
+    flex-direction:row;
+    overflow:auto;
+  }
+  .nav button { white-space:nowrap; }
+  .sidebar-note { display:none; }
+  .topbar { padding:14px; }
+  .content { padding:14px; }
+  .people-grid { grid-template-columns:1fr; }
+  .tree-viewport {
+    height:62vh;
+    min-height:420px;
+  }
+}
+
+.bottom-scroll-dock{
+  position:fixed;
+  left:240px;
+  right:22px;
+  bottom:14px;
+  z-index:22;
+  display:none;
+  align-items:center;
+  gap:10px;
+  padding:10px 12px;
+  background:rgba(17,21,26,.96);
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow:0 14px 38px rgba(0,0,0,.38);
+  backdrop-filter:blur(10px);
+}
+.bottom-scroll-dock.show{display:flex}
+.bottom-scroll-dock .scroll-label{
+  color:var(--muted);
+  font-size:11px;
+  white-space:nowrap;
+}
+.bottom-scroll-dock input[type="range"]{
+  flex:1;
+  min-width:0;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.bottom-scroll-dock .scroll-btn{
+  width:34px;
+  height:30px;
+  padding:0;
+  display:grid;
+  place-items:center;
+}
+@media(max-width:860px){
+  .bottom-scroll-dock{
+    left:14px;
+    right:14px;
+    bottom:10px;
+  }
+}
+
+
+/* ---------------------------------------------------------- added in v2 */
+
+.banner {
+  display:none;
+  align-items:center;
+  gap:10px;
+  margin:0 0 14px;
+  padding:11px 14px;
+  border-radius:10px;
+  font-size:12px;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--muted);
+}
+.banner.show { display:flex; }
+.banner.warn {
+  border-color:#5a4520;
+  background:rgba(224,168,74,.10);
+  color:#e5c07b;
+}
+.banner.bad {
+  border-color:#5c2d31;
+  background:rgba(239,107,115,.10);
+  color:#ef9aa0;
+}
+.banner .grow { flex:1; min-width:0; }
+.banner button { padding:6px 10px; font-size:12px; }
+
+.authbar {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.authbar .who {
+  color:var(--muted);
+  font-size:12px;
+  max-width:190px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.badge {
+  font-size:10px;
+  padding:3px 8px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--panel-2);
+  color:var(--muted);
+  white-space:nowrap;
+}
+.badge.live { border-color:#2f5d43; background:rgba(90,200,140,.12); color:#7fd7a4; }
+.badge.local { border-color:#5a4520; background:rgba(224,168,74,.12); color:#e5c07b; }
+.badge.ro { border-color:#3a4350; }
+
+/* contribution split editor */
+.split-head {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.split-actions { display:flex; gap:6px; }
+.split-actions button { padding:5px 9px; font-size:11px; }
+.total-badge {
+  font-size:11px;
+  font-weight:650;
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid #2f5d43;
+  background:rgba(90,200,140,.12);
+  color:#7fd7a4;
+}
+.total-badge.bad {
+  border-color:#5c2d31;
+  background:rgba(239,107,115,.12);
+  color:#ef9aa0;
+}
+.split-row {
+  display:grid;
+  grid-template-columns:1fr 96px 58px;
+  gap:8px;
+  align-items:center;
+  padding:7px 0;
+  border-top:1px solid var(--line);
+}
+.split-row:first-of-type { border-top:0; }
+.split-row .who {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.split-row .who span {
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.split-row input[type="range"] {
+  width:100%;
+  padding:0;
+  border:0;
+  background:transparent;
+}
+.split-row input[type="number"] { padding:6px 8px; text-align:right; }
+.split-row.off input[type="number"],
+.split-row.off input[type="range"] { opacity:.35; }
+.split-row input[type="checkbox"] { width:auto; flex:none; }
+
+.readout {
+  margin-top:6px;
+  color:var(--muted);
+  font-size:11px;
+}
+#weightReadout { margin-bottom:15px; }
+.computed {
+  padding:9px 10px;
+  border:1px dashed var(--line-soft);
+  border-radius:10px;
+  background:var(--panel-3);
+  font-size:13px;
+}
+.computed b { font-size:16px; }
+
+/* credit view */
+.credit-row {
+  display:grid;
+  grid-template-columns:150px 1fr 84px 84px;
+  gap:12px;
+  align-items:center;
+  padding:12px 0;
+  border-top:1px solid var(--line);
+}
+.credit-row:first-child { border-top:0; }
+.credit-row .name { display:flex; align-items:center; gap:9px; min-width:0; }
+.credit-row .name b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.credit-row .avatar { width:28px; height:28px; font-size:12px; flex:none; }
+.credit-bars { display:grid; gap:5px; }
+.bar {
+  position:relative;
+  height:9px;
+  background:#232a33;
+  border-radius:999px;
+  overflow:hidden;
+}
+.bar > div { height:100%; border-radius:999px; }
+.bar.alloc > div { background:#3d4761; }
+.bar.earned > div { background:var(--accent); }
+.credit-num { text-align:right; font-variant-numeric:tabular-nums; }
+.credit-num b { font-size:15px; }
+.credit-num span { display:block; font-size:10px; color:var(--muted); }
+.legend { display:flex; gap:14px; color:var(--muted); font-size:11px; margin-top:4px; }
+.legend i {
+  display:inline-block; width:9px; height:9px; border-radius:3px;
+  margin-right:5px; vertical-align:middle;
+}
+.head-row {
+  display:grid;
+  grid-template-columns:150px 1fr 84px 84px;
+  gap:12px;
+  color:var(--muted);
+  font-size:11px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--line);
+}
+.head-row div:nth-child(n+3) { text-align:right; }
+
+.node-share { opacity:.75; }
+.node.computed-progress .node-progress > div { background:#5a6790; }
+
+.empty { color:var(--muted); padding:18px 0; text-align:center; font-size:12px; }
+
+@media (max-width: 860px) {
+  .credit-row, .head-row { grid-template-columns:112px 1fr 66px 66px; }
+  .split-row { grid-template-columns:1fr 78px 52px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">01<small>Internal OS</small></div>
+    <div class="nav">
+      <button class="active" data-view="dashboard">Dashboard</button>
+      <button data-view="tree">KPI Tree</button>
+      <button data-view="credit">Credit</button>
+      <button data-view="contributors">Contributors</button>
+      <button data-view="history">Notes &amp; History</button>
+    </div>
+    <div class="sidebar-note" id="sidebarNote"></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="title">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p id="pageSub"></p>
+      </div>
+      <div class="actions">
+        <span class="badge" id="modeBadge">…</span>
+        <div class="authbar" id="authbar"></div>
+        <button class="btn" id="backupBtn">Backup</button>
+        <button class="btn primary" id="addPersonBtn">+ Contributor</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="banner" id="banner">
+        <div class="grow" id="bannerText"></div>
+        <button class="btn" id="bannerAction" hidden></button>
+      </div>
+
+      <section id="dashboard" class="view active">
+        <div class="metrics" id="metrics"></div>
+        <div class="grid2">
+          <div class="card">
+            <h3>Systems progress</h3>
+            <div id="systems"></div>
+          </div>
+          <div class="card">
+            <h3>Current blockers</h3>
+            <div id="blockers"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tree" class="view">
+        <div class="section-head">
+          <div>
+            <h2>KPI Tree</h2>
+            <p>Parent progress is computed from child weights. Click a node to edit it.</p>
+          </div>
+        </div>
+        <div class="tree-shell">
+          <div class="tree-toolbar">
+            <div class="tree-toolbar-left">
+              <span class="tree-pill">Drag to pan</span>
+              <span class="tree-pill" id="rootProgressPill">—</span>
+              <input id="treeSearch" class="tree-search" placeholder="Jump to a node…" />
+            </div>
+            <div class="tree-toolbar-right">
+              <button class="btn" id="centerRootBtn">Center root</button>
+              <button class="btn" id="fitTreeBtn">Reset view</button>
+            </div>
+          </div>
+          <div class="tree-viewport" id="treeViewport">
+            <div class="tree-canvas" id="treeCanvas">
+              <div class="tree" id="treeRoot"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="credit" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Credit</h2>
+            <p>Each leaf's share of the company, split by the contribution percentages set on it.</p>
+          </div>
+        </div>
+        <div class="card">
+          <div class="head-row">
+            <div>Contributor</div>
+            <div>Share</div>
+            <div>Earned</div>
+            <div>Allocated</div>
+          </div>
+          <div id="creditRows"></div>
+          <div class="legend">
+            <span><i style="background:var(--accent)"></i>Earned — share of progress actually achieved</span>
+            <span><i style="background:#3d4761"></i>Allocated — share of the whole roadmap owned</span>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>How this is computed</h3>
+          <p class="muted" style="font-size:12px;line-height:1.6">
+            A node's share of its parent is its weight over the sum of its siblings' weights, so
+            every leaf holds a fixed fraction of the company and those fractions sum to 1.
+            <b>Allocated</b> is that fraction times your percentage on the node — it sums to 100%
+            across everyone. <b>Earned</b> is the same figure multiplied by how done the node
+            actually is, so it sums to the company's overall progress and being assigned to a
+            not-started node earns nothing. Change the weights to change what the company thinks
+            is important.
+          </p>
+        </div>
+      </section>
+
+      <section id="contributors" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Contributors</h2>
+            <p>Profiles and contribution footprint across the company.</p>
+          </div>
+        </div>
+        <div class="people-grid" id="peopleGrid"></div>
+      </section>
+
+      <section id="history" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Notes &amp; History</h2>
+            <p>Hand-written context, plus the automatic change log.</p>
+          </div>
+        </div>
+        <div class="card table-card">
+          <h3 style="padding-top:10px">Notes</h3>
+          <table>
+            <thead>
+              <tr><th>Date</th><th>KPI</th><th>Contributor</th><th>Type</th><th>Note</th></tr>
+            </thead>
+            <tbody id="historyTable"></tbody>
+          </table>
+        </div>
+        <div class="card table-card" style="margin-top:14px">
+          <h3 style="padding-top:10px">Change log</h3>
+          <table>
+            <thead>
+              <tr><th>When</th><th>Who</th><th>Node</th><th>Field</th><th>Change</th></tr>
+            </thead>
+            <tbody id="auditTable"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="bottom-scroll-dock" id="bottomScrollDock">
+  <button class="btn scroll-btn" id="scrollLeftBtn" aria-label="Scroll left">←</button>
+  <span class="scroll-label">Tree position</span>
+  <input id="treeScrollRange" type="range" min="0" max="1000" value="500" aria-label="Horizontal tree position">
+  <button class="btn scroll-btn" id="scrollRightBtn" aria-label="Scroll right">→</button>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div>
+      <b id="drawerTitle"></b>
+      <div class="muted" id="drawerPath"></div>
+    </div>
+    <button class="btn" id="closeDrawer">×</button>
+  </div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<script src="./vendor/supabase.umd.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Never commit secrets — this repo is public.
+db_password.txt
+*.env
+.env*
+
+# Local tooling output
+.playwright-mcp/
+shots/
+*.png
+.DS_Store
