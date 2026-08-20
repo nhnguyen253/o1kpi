@@ -9,7 +9,7 @@ import {
   weightShare, creditByContributor, contributorMix, subtreeLeaves,
   validateSplit, normalizeSplit, evenSplit, pathTo,
 } from './rollup.js';
-import { store, init, save, signIn, signOut, onChange, recentAudit } from './store.js';
+import { store, init, save, setActor, onChange, recentAudit } from './store.js';
 
 // ---------------------------------------------------------------- helpers
 
@@ -43,32 +43,30 @@ function renderChrome() {
   if (store.mode === 'local') {
     badge.className = 'badge local';
     badge.textContent = 'Local only';
-  } else if (store.canEdit) {
-    badge.className = 'badge live';
-    badge.textContent = 'Live · editor';
   } else {
-    badge.className = 'badge ro';
-    badge.textContent = 'Live · read-only';
+    badge.className = 'badge live';
+    badge.textContent = 'Live';
   }
 
+  // No sign-in. Instead each browser picks a name once so the change log can
+  // attribute edits — a label, not a credential.
   const bar = $('authbar');
-  if (store.mode === 'local') {
-    bar.innerHTML = '';
-  } else if (store.user) {
-    bar.innerHTML = `<span class="who" title="${esc(store.user.email)}">${esc(store.user.email)}</span>
-      <button class="btn" id="signOutBtn">Sign out</button>`;
-    $('signOutBtn').onclick = () => signOut();
-  } else {
-    bar.innerHTML = '<button class="btn" id="signInBtn">Sign in to edit</button>';
-    $('signInBtn').onclick = openSignIn;
-  }
+  const names = db()?.contributors ?? [];
+  bar.innerHTML = `
+    <select id="whoami" class="whoami" title="Recorded as the author of your changes">
+      <option value="">Who are you?</option>
+      ${names.map((p) => `<option value="${esc(p.name)}" ${p.name === store.actor ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+      ${store.actor && !names.some((p) => p.name === store.actor)
+        ? `<option value="${esc(store.actor)}" selected>${esc(store.actor)}</option>` : ''}
+    </select>`;
+  $('whoami').onchange = (e) => setActor(e.target.value);
 
   $('sidebarNote').innerHTML =
     store.mode === 'local'
       ? 'Local mode — changes stay in this browser and are <b>not shared</b>. Fill in config.js to go live.'
-      : store.canEdit
-        ? 'Signed in. Changes save for the whole team.'
-        : 'Read-only. Sign in with any email to edit.';
+      : store.actor
+        ? `Editing as <b>${esc(store.actor)}</b>. Changes save for the whole team.`
+        : 'Anyone can edit. Pick your name up top so changes are attributed.';
 
   const updated = db()?.meta?.updated_at;
   $('pageSub').textContent = updated
@@ -283,10 +281,7 @@ function closeDrawer() {
   $('overlay').classList.remove('show');
 }
 
-const readOnlyNote = () =>
-  store.canEdit ? '' :
-    `<div class="callout">Read-only — ${store.mode === 'local'
-      ? 'local mode' : 'sign in to make changes'}.</div>`;
+const readOnlyNote = () => '';
 
 function openNode(id) {
   const n = nodeById(id);
@@ -542,7 +537,6 @@ function openPerson(id) {
 }
 
 function openNewContributor() {
-  if (!store.canEdit) return openSignIn();
   $('drawerTitle').textContent = 'New contributor';
   $('drawerPath').textContent = 'Create profile';
   $('drawerBody').innerHTML = `
@@ -566,29 +560,6 @@ function openNewContributor() {
     const res = await save([{ node_id: null, node_title: name, field: 'contributor', old_value: '', new_value: 'created' }]);
     if (res.ok) { renderAll(); closeDrawer(); }
     else $('saveMsg').innerHTML = `<span style="color:var(--danger)">${esc(res.message)}</span>`;
-  };
-}
-
-function openSignIn() {
-  $('drawerTitle').textContent = 'Sign in';
-  $('drawerPath').textContent = 'Magic link — no password';
-  $('drawerBody').innerHTML = `
-    <div class="field">
-      <label>Email</label>
-      <input id="signInEmail" type="email" placeholder="you@company.com" autocomplete="email">
-    </div>
-    <button class="btn primary" id="sendLinkBtn">Send magic link</button>
-    <div class="readout" id="signInMsg">Any verified email can sign in and edit.</div>`;
-  openDrawer();
-  $('sendLinkBtn').onclick = async () => {
-    const email = $('signInEmail').value.trim();
-    if (!email) return;
-    $('sendLinkBtn').disabled = true;
-    const res = await signIn(email);
-    $('sendLinkBtn').disabled = false;
-    $('signInMsg').innerHTML = res.ok
-      ? '<span style="color:#7fd7a4">Check your email for the link.</span>'
-      : `<span style="color:var(--danger)">${esc(res.message)}</span>`;
   };
 }
 
@@ -766,12 +737,8 @@ onChange(async (reason) => {
       { label: 'Dismiss', fn: () => banner('') });
     return;
   }
-  if (reason === 'auth') {
-    renderAll();
-    if (store.canEdit) {
-      auditRows = await recentAudit();
-      renderHistory();
-    }
+  if (reason === 'actor') {
+    renderChrome();
   }
 });
 

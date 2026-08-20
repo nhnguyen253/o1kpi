@@ -74,17 +74,19 @@ drop policy if exists os_audit_read on os_audit;
 create policy os_audit_read on os_audit
   for select to anon, authenticated using (true);
 
--- Writes: any signed-in user. There is deliberately no editor allowlist —
--- anyone who verifies an email address can edit. To lock it back down to a
--- named list, swap `true` for `is_editor()` in the two policies below and
--- populate allowed_editors (the table and helper are kept for exactly that).
+-- Writes: EVERYONE, including anonymous visitors. There is deliberately no
+-- sign-in and no allowlist — the app has no auth UI at all. The anon key ships
+-- in the public page, so this grants write access to anyone with the URL.
+-- Deliberate trade-off for a small internal board; see anon-editing.sql.
+-- To tighten: revoke-anon-editing.sql, or swap `true` for `is_editor()` and
+-- populate allowed_editors (the table and helper survive for exactly that).
 drop policy if exists os_state_write on os_state;
 create policy os_state_write on os_state
-  for update to authenticated using (true) with check (true);
+  for update to anon, authenticated using (true) with check (true);
 
 drop policy if exists os_audit_write on os_audit;
 create policy os_audit_write on os_audit
-  for insert to authenticated with check (true);
+  for insert to anon, authenticated with check (true);
 
 drop policy if exists allowed_editors_read on allowed_editors;
 create policy allowed_editors_read on allowed_editors

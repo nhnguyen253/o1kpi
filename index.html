@@ -690,14 +690,14 @@ textarea {
   align-items:center;
   gap:8px;
 }
-.authbar .who {
-  color:var(--muted);
+.authbar .whoami {
+  width:auto;
+  min-width:132px;
+  padding:8px 10px;
   font-size:12px;
-  max-width:190px;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
+  color:var(--text);
 }
+.authbar .whoami:invalid { color:var(--muted); }
 .badge {
   font-size:10px;
   padding:3px 8px;

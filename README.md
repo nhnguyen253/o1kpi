@@ -5,10 +5,10 @@ and backed by Supabase.
 
 **Live:** https://nhnguyen253.github.io/o1kpi/
 
-> ⚠️ This repo is **public**, and so is the dashboard. Anyone with the URL can
-> read the KPI data, including fundraise figures and per-person notes, and
-> anyone who signs in with a verified email can edit it. See "Who can edit"
-> below to tighten either of those.
+> ⚠️ This repo is **public**, and so is the dashboard. There is no sign-in:
+> anyone with the URL can read **and edit** the KPI data, including fundraise
+> figures and per-person notes. This is a deliberate trade for a small internal
+> board — see "Who can edit" below, and `revoke-anon-editing.sql` to undo it.
 
 ---
 
@@ -98,20 +98,25 @@ tree validation (cycles, orphans). Run this before touching `rollup.js`.
 
 ### Who can edit
 
-**Anyone signed in.** There is no editor allowlist — a teammate just opens the
-page, enters their email, clicks the magic link, and can save. Nothing to
-administer.
+**Anyone who opens the page.** There is no sign-in and no allowlist. Pick your
+name from the dropdown in the header and start editing; that name is recorded as
+the author of each change in the log.
 
-Be clear-eyed about what that means: Supabase accepts open sign-ups, so this is
-"anyone on the internet willing to verify an email address," not "the five of
-us." It keeps out drive-by vandalism and gives every change a signed-in author
-in the change log, but it is not real access control. Every save is attributed
-in `os_audit`, and `os_state` keeps a version number, so damage is visible and
-recoverable.
+Be clear-eyed about the trade: the anon key ships in a public page, so write
+access is open to anyone who finds the URL, and the name you pick is a
+self-asserted label, not a credential. What you keep is recoverability, not
+prevention — `os_state.version` increments on every write and `os_audit` is an
+append-only log, so damage is visible and reversible. **Hit Backup periodically**
+and keep the JSON somewhere safe; that is the real safety net here.
 
-To lock it back down to a named list, put the team in `allowed_editors` and swap
-`true` for `is_editor()` in the two write policies in `schema.sql`. The table and
-the `is_editor()` helper are still there for exactly this.
+To tighten later, without touching the data:
+
+| Want | Run |
+|---|---|
+| Require a signed-in user | `revoke-anon-editing.sql` |
+| Restrict to a named list | `revoke-anon-editing.sql`, then swap `true` → `is_editor()` and fill `allowed_editors` |
+
+Both need the sign-in UI back — it lives in git history (commit `db stuff`).
 
 ### Making it private later
 
@@ -132,7 +137,9 @@ a free plan — this closes the *data*, not the page shell.)
 | `store.js` | Load/save, auth, realtime, the concurrency guard. |
 | `config.js` | Supabase URL + anon key. |
 | `schema.sql` | Tables, RLS policies, realtime. |
-| `open-editing.sql` | One-off: drops the editor allowlist on an existing project. |
+| `anon-editing.sql` | One-off: opens editing to everyone, no sign-in. **Currently in effect.** |
+| `revoke-anon-editing.sql` | Undo: require a signed-in user again. |
+| `open-editing.sql` | Intermediate step: signed-in users, no allowlist. |
 | `data/seed.json` | First-run seed and offline fallback. |
 | `migrate.mjs` | One-shot v1→v2 schema conversion. Already run; kept for reference. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
@@ -151,6 +158,11 @@ stay editorial.
 ## Deploying
 
 Already configured to deploy from `main`. Push to `main` and Pages rebuilds.
+
+**Expect a lag.** GitHub Pages serves assets with `cache-control: max-age=600`,
+so for up to 10 minutes after a deploy a browser may keep using the old
+`app.js` / `config.js`. If the page looks stale or wrong right after a push,
+hard-reload (`Cmd+Shift+R`) before debugging anything.
 
 First-time setup: **Settings → Pages → Source: Deploy from a branch →
 `main` → `/ (root)`**.

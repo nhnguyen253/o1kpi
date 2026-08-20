@@ -1,13 +1,18 @@
 /**
- * Data layer: load, save, auth, realtime.
+ * Data layer: load, save, realtime.
  *
  * Two modes, chosen automatically:
  *
- *   supabase — config.js is filled in. Shared state, magic-link auth, live
- *              updates across open tabs, optimistic concurrency on save.
+ *   supabase — config.js is filled in. Shared state, live updates across open
+ *              tabs, optimistic concurrency on save.
  *   local    — config.js still has placeholders. Seeds from data/seed.json and
  *              saves to localStorage. Nothing is shared; the header says so.
- *              Lets the whole UI be reviewed before the backend exists.
+ *
+ * There is deliberately NO sign-in: anyone who opens the page can edit, and the
+ * RLS policies grant write access to the anon role to match (anon-editing.sql).
+ * In place of an authenticated identity, each browser picks a name once — see
+ * `actor` below — which is recorded as the author of every change. That is a
+ * courtesy label, not a credential; it is self-asserted and trivially faked.
  *
  * Concurrency: os_state carries an integer `version`. A save matches on the
  * version it loaded; zero rows updated means someone else saved first, so we
@@ -16,17 +21,26 @@
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isConfigured } from './config.js';
 
 const LOCAL_KEY = 'o1kpi_local_db_v2';
+const ACTOR_KEY = 'o1kpi_actor';
 
 export const store = {
   mode: 'local',
   db: null,
   version: 0,
-  user: null,
-  canEdit: false,
+  actor: localStorage.getItem(ACTOR_KEY) || '',
+  canEdit: true,          // no sign-in; everyone can edit
   lastError: null,
   _client: null,
   _listeners: new Set(),
 };
+
+/** Remember who is using this browser, for the change log. */
+export function setActor(name) {
+  store.actor = (name || '').trim();
+  if (store.actor) localStorage.setItem(ACTOR_KEY, store.actor);
+  else localStorage.removeItem(ACTOR_KEY);
+  emit('actor');
+}
 
 export function onChange(fn) {
   store._listeners.add(fn);
@@ -55,17 +69,9 @@ export async function init() {
 
   try {
     store._client = window.supabase.createClient(SUPABASE_URL.replace(/\/$/, ''), SUPABASE_ANON_KEY, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
     store.mode = 'supabase';
-
-    const { data: sessionData } = await store._client.auth.getSession();
-    await applySession(sessionData?.session ?? null);
-
-    store._client.auth.onAuthStateChange(async (_event, session) => {
-      await applySession(session);
-      emit('auth');
-    });
 
     await load();
     subscribeRealtime();
@@ -80,7 +86,6 @@ export async function init() {
 async function initLocal(reason) {
   store.mode = 'local';
   store.lastError = reason;
-  store.canEdit = true; // local mode is your own browser; editing is the point
   const cached = localStorage.getItem(LOCAL_KEY);
   if (cached) {
     try {
@@ -92,13 +97,6 @@ async function initLocal(reason) {
   store.db = await fetchSeed();
   emit('init');
   return store;
-}
-
-async function applySession(session) {
-  // No allowlist: any signed-in user may edit. RLS enforces the same rule
-  // server-side, so this flag only decides whether to show the controls.
-  store.user = session?.user ?? null;
-  store.canEdit = !!store.user;
 }
 
 // ------------------------------------------------------------------ load
@@ -124,7 +122,7 @@ export async function load() {
     // signed-in user, so an anonymous visitor never bootstraps the row.
     store.db = await fetchSeed();
     store.version = data?.version ?? 1;
-    store.lastError = 'Database is empty — showing the bundled seed. Sign in and save to publish it.';
+    store.lastError = 'Database is empty — showing the bundled seed. Save any node to publish it.';
     return store.db;
   }
 
@@ -150,11 +148,7 @@ export async function save(auditEntries = []) {
     return { ok: true };
   }
 
-  if (!store.canEdit) {
-    return { ok: false, message: 'Sign in to save changes.' };
-  }
-
-  store.db.meta.updated_by = store.user?.email ?? null;
+  store.db.meta.updated_by = store.actor || 'anonymous';
 
   const { data, error } = await store._client
     .from('os_state')
@@ -162,7 +156,7 @@ export async function save(auditEntries = []) {
       data: store.db,
       version: store.version + 1,
       updated_at: store.db.meta.updated_at,
-      updated_by: store.user?.email ?? null,
+      updated_by: store.db.meta.updated_by,
     })
     .eq('id', 1)
     .eq('version', store.version)   // <- the concurrency guard
@@ -182,7 +176,10 @@ export async function save(auditEntries = []) {
         message: `${current.updated_by || 'Someone'} saved changes since you opened this page.`,
       };
     }
-    return { ok: false, message: 'Write rejected by the database. Is your session still valid?' };
+    return {
+      ok: false,
+      message: 'The database rejected the write. Has anon-editing.sql been run on this project?',
+    };
   }
 
   store.version = data[0].version;
@@ -192,7 +189,7 @@ export async function save(auditEntries = []) {
 }
 
 function writeAudit(entries) {
-  const actor = store.user?.email ?? 'unknown';
+  const actor = store.actor || 'anonymous';
   store._client
     .from('os_audit')
     .insert(entries.map((e) => ({ ...e, actor })))
@@ -212,24 +209,6 @@ function subscribeRealtime() {
       emit('remote');
     })
     .subscribe();
-}
-
-// ------------------------------------------------------------------ auth
-
-export async function signIn(email) {
-  if (store.mode === 'local') return { ok: false, message: 'Local mode — no sign-in needed.' };
-  const { error } = await store._client.auth.signInWithOtp({
-    email: email.trim().toLowerCase(),
-    options: { emailRedirectTo: window.location.href.split('#')[0] },
-  });
-  return error ? { ok: false, message: error.message } : { ok: true };
-}
-
-export async function signOut() {
-  if (store.mode === 'supabase') await store._client.auth.signOut();
-  store.user = null;
-  store.canEdit = false;
-  emit('auth');
 }
 
 export async function recentAudit(limit = 50) {
