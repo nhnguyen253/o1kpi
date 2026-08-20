@@ -6,9 +6,9 @@ and backed by Supabase.
 **Live:** https://nhnguyen253.github.io/o1kpi/
 
 > ⚠️ This repo is **public**, and so is the dashboard. Anyone with the URL can
-> read the KPI data, including fundraise figures and per-person notes. Only
-> allowlisted, signed-in editors can change anything. To close reads, see
-> "Making it private" below.
+> read the KPI data, including fundraise figures and per-person notes, and
+> anyone who signs in with a verified email can edit it. See "Who can edit"
+> below to tighten either of those.
 
 ---
 
@@ -87,29 +87,31 @@ tree validation (cycles, orphans). Run this before touching `rollup.js`.
 
 1. Create a project at [supabase.com](https://supabase.com) (free tier is fine).
 2. **SQL Editor → New query** → paste all of `schema.sql` → Run.
-3. Still in the SQL editor, add the team to the allowlist:
-   ```sql
-   insert into allowed_editors (email, note) values
-     ('nam@…',    'Nam'),
-     ('ethan@…',  'Ethan'),
-     ('isaiah@…', 'Isaiah'),
-     ('saif@…',   'LFG'),
-     ('asad@…',   'Asad')
-   on conflict (email) do nothing;
-   ```
-4. **Project Settings → API** → copy the Project URL and the `anon` key into
+3. **Project Settings → API** → copy the Project URL and the `anon` key into
    `config.js`. Both are publishable; the `service_role` key is *not* — never
    put it in this repo.
-5. **Authentication → URL Configuration** → add
+4. **Authentication → URL Configuration** → add
    `https://nhnguyen253.github.io/o1kpi/` to the redirect allowlist so magic
    links come back to the right page.
-6. Commit and push. Sign in on the live page and hit Save once on any node —
+5. Commit and push. Sign in on the live page and hit Save once on any node —
    that publishes the seed into the database.
 
-### Adding or removing an editor
+### Who can edit
 
-Insert into or delete from `allowed_editors` in the Supabase SQL editor. No
-deploy needed; it takes effect on their next save.
+**Anyone signed in.** There is no editor allowlist — a teammate just opens the
+page, enters their email, clicks the magic link, and can save. Nothing to
+administer.
+
+Be clear-eyed about what that means: Supabase accepts open sign-ups, so this is
+"anyone on the internet willing to verify an email address," not "the five of
+us." It keeps out drive-by vandalism and gives every change a signed-in author
+in the change log, but it is not real access control. Every save is attributed
+in `os_audit`, and `os_state` keeps a version number, so damage is visible and
+recoverable.
+
+To lock it back down to a named list, put the team in `allowed_editors` and swap
+`true` for `is_editor()` in the two write policies in `schema.sql`. The table and
+the `is_editor()` helper are still there for exactly this.
 
 ### Making it private later
 
@@ -130,6 +132,7 @@ a free plan — this closes the *data*, not the page shell.)
 | `store.js` | Load/save, auth, realtime, the concurrency guard. |
 | `config.js` | Supabase URL + anon key. |
 | `schema.sql` | Tables, RLS policies, realtime. |
+| `open-editing.sql` | One-off: drops the editor allowlist on an existing project. |
 | `data/seed.json` | First-run seed and offline fallback. |
 | `migrate.mjs` | One-shot v1→v2 schema conversion. Already run; kept for reference. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |

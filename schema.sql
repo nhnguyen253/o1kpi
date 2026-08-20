@@ -74,20 +74,21 @@ drop policy if exists os_audit_read on os_audit;
 create policy os_audit_read on os_audit
   for select to anon, authenticated using (true);
 
--- Writes: allowlisted editors only.
+-- Writes: any signed-in user. There is deliberately no editor allowlist —
+-- anyone who verifies an email address can edit. To lock it back down to a
+-- named list, swap `true` for `is_editor()` in the two policies below and
+-- populate allowed_editors (the table and helper are kept for exactly that).
 drop policy if exists os_state_write on os_state;
 create policy os_state_write on os_state
-  for update to authenticated using (is_editor()) with check (is_editor());
+  for update to authenticated using (true) with check (true);
 
 drop policy if exists os_audit_write on os_audit;
 create policy os_audit_write on os_audit
-  for insert to authenticated with check (is_editor());
+  for insert to authenticated with check (true);
 
--- Nobody edits the allowlist from the browser; manage it here in the
--- dashboard. Editors may read it so the UI can show who has access.
 drop policy if exists allowed_editors_read on allowed_editors;
 create policy allowed_editors_read on allowed_editors
-  for select to authenticated using (is_editor());
+  for select to authenticated using (true);
 
 -- No insert/update/delete policy on allowed_editors == no client can change it.
 

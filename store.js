@@ -95,19 +95,10 @@ async function initLocal(reason) {
 }
 
 async function applySession(session) {
+  // No allowlist: any signed-in user may edit. RLS enforces the same rule
+  // server-side, so this flag only decides whether to show the controls.
   store.user = session?.user ?? null;
-  if (!store.user) {
-    store.canEdit = false;
-    return;
-  }
-  // Ask the database, don't guess: allowed_editors is only readable by editors,
-  // so a successful non-empty read is itself the permission check.
-  const { data, error } = await store._client
-    .from('allowed_editors')
-    .select('email')
-    .eq('email', (store.user.email ?? '').toLowerCase())
-    .maybeSingle();
-  store.canEdit = !error && !!data;
+  store.canEdit = !!store.user;
 }
 
 // ------------------------------------------------------------------ load
@@ -129,8 +120,8 @@ export async function load() {
 
   const empty = !data || !data.data || !Array.isArray(data.data.nodes);
   if (empty) {
-    // Fresh project: show the seed. It is written back on the first save by
-    // an allowlisted editor, so an anonymous visitor never bootstraps the row.
+    // Fresh project: show the seed. It is written back on the first save by a
+    // signed-in user, so an anonymous visitor never bootstraps the row.
     store.db = await fetchSeed();
     store.version = data?.version ?? 1;
     store.lastError = 'Database is empty — showing the bundled seed. Sign in and save to publish it.';
@@ -160,7 +151,7 @@ export async function save(auditEntries = []) {
   }
 
   if (!store.canEdit) {
-    return { ok: false, message: 'You are not on the editor allowlist.' };
+    return { ok: false, message: 'Sign in to save changes.' };
   }
 
   store.db.meta.updated_by = store.user?.email ?? null;
@@ -191,7 +182,7 @@ export async function save(auditEntries = []) {
         message: `${current.updated_by || 'Someone'} saved changes since you opened this page.`,
       };
     }
-    return { ok: false, message: 'Write rejected — your account is not an allowed editor.' };
+    return { ok: false, message: 'Write rejected by the database. Is your session still valid?' };
   }
 
   store.version = data[0].version;

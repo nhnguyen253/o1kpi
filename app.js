@@ -67,8 +67,8 @@ function renderChrome() {
     store.mode === 'local'
       ? 'Local mode — changes stay in this browser and are <b>not shared</b>. Fill in config.js to go live.'
       : store.canEdit
-        ? 'Signed in as an editor. Changes save for the whole team.'
-        : 'Read-only. Sign in with an allowlisted email to edit.';
+        ? 'Signed in. Changes save for the whole team.'
+        : 'Read-only. Sign in with any email to edit.';
 
   const updated = db()?.meta?.updated_at;
   $('pageSub').textContent = updated
@@ -286,7 +286,7 @@ function closeDrawer() {
 const readOnlyNote = () =>
   store.canEdit ? '' :
     `<div class="callout">Read-only — ${store.mode === 'local'
-      ? 'local mode' : 'sign in with an allowlisted email to make changes'}.</div>`;
+      ? 'local mode' : 'sign in to make changes'}.</div>`;
 
 function openNode(id) {
   const n = nodeById(id);
@@ -578,7 +578,7 @@ function openSignIn() {
       <input id="signInEmail" type="email" placeholder="you@company.com" autocomplete="email">
     </div>
     <button class="btn primary" id="sendLinkBtn">Send magic link</button>
-    <div class="readout" id="signInMsg">Only emails on the editor allowlist can save changes.</div>`;
+    <div class="readout" id="signInMsg">Any verified email can sign in and edit.</div>`;
   openDrawer();
   $('sendLinkBtn').onclick = async () => {
     const email = $('signInEmail').value.trim();
@@ -623,6 +623,9 @@ function openBackup() {
 // ---------------------------------------------------------------- render all
 
 function renderAll() {
+  // Supabase fires an initial auth event before load() resolves, so this can be
+  // reached before there is any data. Nothing to draw yet — boot renders next.
+  if (!store.db) return;
   rebuild();
   renderChrome();
   refreshBanner();
@@ -765,7 +768,10 @@ onChange(async (reason) => {
   }
   if (reason === 'auth') {
     renderAll();
-    if (store.canEdit) auditRows = await recentAudit().then((r) => (auditRows = r, renderHistory(), r));
+    if (store.canEdit) {
+      auditRows = await recentAudit();
+      renderHistory();
+    }
   }
 });
 

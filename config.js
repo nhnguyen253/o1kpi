@@ -13,8 +13,8 @@
  * saves to this browser's localStorage only, and says so in the header. That
  * makes the whole UI reviewable before the backend exists.
  */
-export const SUPABASE_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
-export const SUPABASE_ANON_KEY = 'PASTE_YOUR_SUPABASE_ANON_KEY_HERE';
+export const SUPABASE_URL = 'https://ggiodubaxzeoemgdjpxd.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnaW9kdWJheHplb2VtZ2RqcHhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyNTYxMTIsImV4cCI6MjEwMjgzMjExMn0.oUJo07mAL5mfAT2rHx-6zWlvOAJAW9iIKa-tcrBdjAM';
 
 export const isConfigured = () =>
   /^https:\/\/.+\.supabase\.co\/?$/.test(SUPABASE_URL) && SUPABASE_ANON_KEY.length > 40;
