@@ -791,6 +791,7 @@ textarea {
   border-top:1px solid var(--line);
 }
 .credit-row:first-child { border-top:0; }
+.credit-row.unassigned { opacity:.72; }
 .credit-row .name { display:flex; align-items:center; gap:9px; min-width:0; }
 .credit-row .name b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .credit-row .avatar { width:28px; height:28px; font-size:12px; flex:none; }
@@ -825,6 +826,33 @@ textarea {
 .head-row div:nth-child(n+3) { text-align:right; }
 
 .node-share { opacity:.75; }
+
+/* structure editing */
+.struct {
+  margin-top:22px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.struct-head {
+  color:var(--muted);
+  font-size:11px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:12px;
+}
+.add-row {
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+}
+.btn.danger {
+  border-color:#5c2d31;
+  background:rgba(239,107,115,.10);
+  color:#ef9aa0;
+  width:100%;
+}
+.btn.danger:hover { border-color:var(--danger); }
+.btn.danger:disabled { opacity:.5; }
 .node.computed-progress .node-progress > div { background:#5a6790; }
 
 .empty { color:var(--muted); padding:18px 0; text-align:center; font-size:12px; }
@@ -898,6 +926,7 @@ textarea {
               <input id="treeSearch" class="tree-search" placeholder="Jump to a node…" />
             </div>
             <div class="tree-toolbar-right">
+              <button class="btn primary" id="addTopNodeBtn">+ Node</button>
               <button class="btn" id="centerRootBtn">Center root</button>
               <button class="btn" id="fitTreeBtn">Reset view</button>
             </div>

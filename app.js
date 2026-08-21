@@ -5,8 +5,8 @@
  * parent's percentage any more. Persistence and auth come from store.js.
  */
 import {
-  buildTree, children, isLeaf, rolledProgress, rolledStatus, companyShare,
-  weightShare, creditByContributor, contributorMix, subtreeLeaves,
+  buildTree, children, isLeaf, leaves, rolledProgress, rolledStatus, companyShare,
+  creditByContributor, contributorMix, subtreeLeaves,
   validateSplit, normalizeSplit, evenSplit, pathTo,
 } from './rollup.js';
 import { store, init, save, setActor, onChange, recentAudit } from './store.js';
@@ -104,10 +104,10 @@ function refreshBanner() {
 // ---------------------------------------------------------------- dashboard
 
 function renderMetrics() {
-  const leaves = tree.nodes.filter((n) => isLeaf(tree, n.id));
+  const leafNodes = leaves(tree);
   const rows = [
     ['Company progress', pct(rolledProgress(tree, 'root'))],
-    ['Milestones complete', `${leaves.filter((n) => n.status === 'done').length}/${leaves.length}`],
+    ['Milestones complete', `${leafNodes.filter((n) => n.status === 'done').length}/${leafNodes.length}`],
     ['Blocked', tree.nodes.filter((n) => isLeaf(tree, n.id) && n.status === 'blocked').length],
     ['Contributors', db().contributors.length],
   ];
@@ -214,6 +214,28 @@ function renderCredit() {
         <div class="credit-num"><b>${pct(r.allocated)}</b><span>of roadmap</span></div>
       </div>`;
   }).join('');
+
+  // Leaves with nobody assigned hold real company share that belongs to no one.
+  // Show it, or the Credit column looks broken when it simply isn't finished.
+  const unstaffed = leaves(tree).filter((l) => !(l.contributions ?? []).length);
+  const unstaffedShare = unstaffed.reduce((s, l) => s + companyShare(tree, l.id) * 100, 0);
+  if (unstaffedShare > 0.05) {
+    $('creditRows').insertAdjacentHTML('beforeend', `
+      <div class="credit-row unassigned">
+        <div class="name">
+          <div class="avatar" style="background:#2a3038">?</div>
+          <div style="min-width:0">
+            <b>Unassigned</b>
+            <div class="muted">${unstaffed.length} node${unstaffed.length === 1 ? '' : 's'} with no contributors</div>
+          </div>
+        </div>
+        <div class="credit-bars">
+          <div class="bar alloc"><div style="width:${(unstaffedShare / maxAlloc) * 100}%;background:#3a4350"></div></div>
+        </div>
+        <div class="credit-num"><b>—</b><span></span></div>
+        <div class="credit-num"><b>${pct(unstaffedShare)}</b><span>of roadmap</span></div>
+      </div>`);
+  }
 }
 
 // ---------------------------------------------------------------- people
@@ -283,11 +305,113 @@ function closeDrawer() {
 
 const readOnlyNote = () => '';
 
+// ---------------------------------------------------------------- structure edits
+
+const NODE_TYPES = ['category', 'kpi', 'branch', 'milestone'];
+
+const newId = () => 'n' + Math.random().toString(36).slice(2, 10);
+
+/** Sensible default type for a child of `parent`. Type is cosmetic; only 'root' is load-bearing. */
+function defaultChildType(parent) {
+  return { root: 'category', category: 'kpi', kpi: 'milestone', branch: 'milestone' }[parent.type]
+    ?? 'milestone';
+}
+
+/**
+ * Add a child under `parentId`.
+ *
+ * If the parent was a leaf, it stops being one — its progress becomes computed
+ * and it may no longer hold contributions (that would double-count against its
+ * own children). So the FIRST child inherits the parent's progress, status and
+ * split, which keeps every number in the tree exactly where it was.
+ */
+function addChildNode(parentId, title) {
+  const parent = nodeById(parentId);
+  const firstChild = children(tree, parentId).length === 0;
+  const child = {
+    id: newId(),
+    parent_id: parentId,
+    type: defaultChildType(parent),
+    title: title.trim() || 'Untitled',
+    weight: 1,
+    progress: 0,
+    status: 'not_started',
+    target_date: '',
+    notes: '',
+    contributions: [],
+  };
+  if (firstChild) {
+    child.progress = Number(parent.progress) || 0;
+    child.status = parent.status ?? 'not_started';
+    child.contributions = parent.contributions ?? [];
+    delete parent.progress;
+    parent.contributions = [];
+  }
+  db().nodes.push(child);
+  return child;
+}
+
+/**
+ * Remove a node and everything under it.
+ *
+ * If this empties the parent, the parent becomes a leaf again — so it needs its
+ * own progress and split back, or the numbers it was displaying vanish. We
+ * capture its rolled-up values first and write them down onto it, which is the
+ * exact inverse of what addChildNode does when a leaf gains its first child.
+ */
+function deleteSubtree(id) {
+  const node = nodeById(id);
+  const parentId = node?.parent_id ?? null;
+  const parent = parentId != null ? nodeById(parentId) : null;
+  const willEmptyParent = parent && children(tree, parentId).length === 1;
+
+  // Snapshot before the tree changes underneath us.
+  const carriedProgress = willEmptyParent ? rolledProgress(tree, parentId) : null;
+  const carriedStatus = willEmptyParent ? rolledStatus(tree, parentId) : null;
+  const carriedSplit = willEmptyParent ? normalizeSplit(contributorMix(tree, parentId)) : null;
+
+  const doomed = new Set(subtreeIds(id));
+  db().nodes = db().nodes.filter((n) => !doomed.has(n.id));
+  db().history = (db().history ?? []).filter((h) => !doomed.has(h.node_id));
+
+  if (willEmptyParent) {
+    parent.progress = Math.round(carriedProgress);
+    parent.status = carriedStatus;
+    parent.contributions = carriedSplit;
+  }
+  return [...doomed];
+}
+
+function subtreeIds(id) {
+  const out = [];
+  (function walk(nid) {
+    out.push(nid);
+    children(tree, nid).forEach((c) => walk(c.id));
+  })(id);
+  return out;
+}
+
+/**
+ * Persist after a structural change, but only if the result is still a valid
+ * tree. buildTree throws on cycles and orphans; catching here means a bad move
+ * is refused with a message instead of leaving the page unrenderable.
+ */
+async function saveStructure(auditEntries) {
+  try {
+    buildTree(db().nodes);
+  } catch (e) {
+    return { ok: false, message: `Refused — that would break the tree: ${e.message}` };
+  }
+  return save(auditEntries);
+}
+
+// ---------------------------------------------------------------- node drawer
+
 function openNode(id) {
   const n = nodeById(id);
   const leaf = isLeaf(tree, id);
   const kids = children(tree, id);
-  const ro = !store.canEdit ? 'disabled' : '';
+  const isRoot = n.parent_id == null;
 
   $('drawerTitle').textContent = n.title;
   $('drawerPath').textContent = pathTo(tree, id).map((x) => x.title).join(' / ');
@@ -295,7 +419,7 @@ function openNode(id) {
   const progressBlock = leaf
     ? `<div class="field">
          <label>Progress %</label>
-         <input id="nodeProgress" type="number" min="0" max="100" value="${n.progress ?? 0}" ${ro}>
+         <input id="nodeProgress" type="number" min="0" max="100" value="${n.progress ?? 0}">
        </div>`
     : `<div class="field">
          <label>Progress (computed)</label>
@@ -306,7 +430,7 @@ function openNode(id) {
   const statusBlock = leaf
     ? `<div class="field">
          <label>Status</label>
-         <select id="nodeStatus" ${ro}>
+         <select id="nodeStatus">
            ${['not_started', 'in_progress', 'blocked', 'done'].map((s) =>
              `<option value="${s}" ${s === n.status ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}
          </select>
@@ -322,8 +446,8 @@ function openNode(id) {
         <label style="margin:0">Contribution split</label>
         <div class="split-actions">
           <span class="total-badge" id="splitTotal">100%</span>
-          <button class="btn" id="splitEvenBtn" ${ro}>Split evenly</button>
-          <button class="btn" id="splitNormBtn" ${ro}>Normalize</button>
+          <button class="btn" id="splitEvenBtn">Split evenly</button>
+          <button class="btn" id="splitNormBtn">Normalize</button>
         </div>
       </div>
       <div id="splitRows"></div>
@@ -338,13 +462,35 @@ function openNode(id) {
         ${subtreeLeaves(tree, id).length} leaf nodes. Set percentages on the leaves themselves.</div>
     </div>`;
 
+  // Everything except self and own descendants is a legal new parent.
+  const banned = new Set(subtreeIds(id));
+  const moveOptions = tree.nodes
+    .filter((x) => !banned.has(x.id))
+    .map((x) => `<option value="${esc(x.id)}" ${x.id === n.parent_id ? 'selected' : ''}>${esc(pathTo(tree, x.id).map((p) => p.title).join(' / '))}</option>`)
+    .join('');
+
   $('drawerBody').innerHTML = `
-    ${readOnlyNote()}
+    <div class="field">
+      <label>Title</label>
+      <input id="nodeTitle" value="${esc(n.title)}">
+    </div>
+    <div class="two">
+      <div class="field">
+        <label>Type</label>
+        <select id="nodeType" ${isRoot ? 'disabled' : ''}>
+          ${isRoot ? '<option>root</option>' : NODE_TYPES.map((t) =>
+            `<option value="${t}" ${t === n.type ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Target date</label>
+        <input id="nodeTarget" type="date" value="${esc(n.target_date ?? '')}">
+      </div>
+    </div>
     <div class="two">
       <div class="field">
         <label>Weight (relative to siblings)</label>
-        <input id="nodeWeight" type="number" min="0" step="0.5" value="${n.weight ?? 1}"
-          ${n.parent_id == null ? 'disabled' : ro}>
+        <input id="nodeWeight" type="number" min="0" step="0.5" value="${n.weight ?? 1}" ${isRoot ? 'disabled' : ''}>
       </div>
       ${progressBlock}
     </div>
@@ -353,10 +499,32 @@ function openNode(id) {
     ${splitBlock}
     <div class="field">
       <label>Notes / who did what</label>
-      <textarea id="nodeNotes" ${ro}>${esc(n.notes ?? '')}</textarea>
+      <textarea id="nodeNotes">${esc(n.notes ?? '')}</textarea>
     </div>
-    ${store.canEdit ? '<button class="btn primary" id="saveNodeBtn">Save changes</button>' : ''}
+
+    <button class="btn primary" id="saveNodeBtn">Save changes</button>
     <div class="readout" id="saveMsg"></div>
+
+    <div class="struct">
+      <div class="struct-head">Structure</div>
+      <div class="field">
+        <label>Add a child under this node</label>
+        <div class="add-row">
+          <input id="newChildTitle" placeholder="New node title…">
+          <button class="btn" id="addChildBtn">Add</button>
+        </div>
+        ${leaf ? `<div class="readout">This node is a leaf. Its first child inherits
+          ${pct(Number(n.progress) || 0, 0)} progress and the current split, so nothing shifts.</div>` : ''}
+      </div>
+      ${isRoot ? '' : `
+      <div class="field">
+        <label>Move under</label>
+        <select id="moveParent">${moveOptions}</select>
+        <div class="readout">Its own descendants are excluded — a node can't be moved inside itself.</div>
+      </div>
+      <button class="btn danger" id="deleteNodeBtn">Delete${kids.length ? ` node and ${subtreeIds(id).length - 1} descendant${subtreeIds(id).length === 2 ? '' : 's'}` : ' node'}</button>`}
+      <div class="readout" id="structMsg"></div>
+    </div>
   `;
 
   openDrawer();
@@ -364,7 +532,7 @@ function openNode(id) {
   // --- weight readout, live
   const weightInput = $('nodeWeight');
   const updateWeightReadout = () => {
-    if (n.parent_id == null) {
+    if (isRoot) {
       $('weightReadout').textContent = 'The root is the whole company by definition.';
       return;
     }
@@ -384,8 +552,42 @@ function openNode(id) {
   updateWeightReadout();
 
   // --- contribution split editor
+  //
+  // Structure is rendered ONCE per membership change. Dragging a slider only
+  // updates values in place — re-rendering innerHTML mid-drag destroys the
+  // element under the pointer, which is what made the sliders un-draggable.
   let working = leaf ? structuredClone(n.contributions ?? []) : [];
   const pctOf = (cid) => working.find((c) => c.contributor_id === cid)?.pct ?? 0;
+
+  function syncSplit() {
+    const { ok, total } = validateSplit(working);
+    const badge = $('splitTotal');
+    if (badge) {
+      badge.textContent = `${total.toFixed(0)}%`;
+      badge.className = `total-badge ${ok || !working.length ? '' : 'bad'}`;
+    }
+    const saveBtn = $('saveNodeBtn');
+    if (saveBtn) {
+      const valid = !working.length || ok;
+      saveBtn.disabled = !valid;
+      saveBtn.title = valid ? '' : 'Contribution split must total exactly 100%';
+    }
+  }
+
+  /** Push `working` values into the inputs without touching the DOM structure. */
+  function refreshSplitValues(exceptEl) {
+    $('splitRows').querySelectorAll('[data-row]').forEach((row) => {
+      const cid = row.dataset.row;
+      const on = working.some((c) => c.contributor_id === cid);
+      const v = pctOf(cid);
+      row.classList.toggle('off', !on);
+      row.querySelectorAll('input[data-range], input[data-num]').forEach((el) => {
+        el.disabled = !on;
+        if (el !== exceptEl && el.value !== String(v)) el.value = v;
+      });
+    });
+    syncSplit();
+  }
 
   function drawSplit() {
     if (!leaf) return;
@@ -395,88 +597,162 @@ function openNode(id) {
       return `
         <div class="split-row ${on ? '' : 'off'}" data-row="${esc(p.id)}">
           <div class="who">
-            <input type="checkbox" data-toggle="${esc(p.id)}" ${on ? 'checked' : ''} ${ro}>
+            <input type="checkbox" data-toggle="${esc(p.id)}" ${on ? 'checked' : ''}>
             <span>${esc(p.name)}</span>
           </div>
-          <input type="range" min="0" max="100" step="1" value="${v}" data-range="${esc(p.id)}" ${on && store.canEdit ? '' : 'disabled'}>
-          <input type="number" min="0" max="100" step="1" value="${v}" data-num="${esc(p.id)}" ${on && store.canEdit ? '' : 'disabled'}>
+          <input type="range" min="0" max="100" step="1" value="${v}" data-range="${esc(p.id)}" ${on ? '' : 'disabled'}>
+          <input type="number" min="0" max="100" step="1" value="${v}" data-num="${esc(p.id)}" ${on ? '' : 'disabled'}>
         </div>`;
     }).join('');
-
-    const { ok, total } = validateSplit(working);
-    const badge = $('splitTotal');
-    badge.textContent = `${total.toFixed(0)}%`;
-    badge.className = `total-badge ${ok || !working.length ? '' : 'bad'}`;
-    const saveBtn = $('saveNodeBtn');
-    if (saveBtn) {
-      const valid = !working.length || ok;
-      saveBtn.disabled = !valid;
-      saveBtn.title = valid ? '' : 'Contribution split must total exactly 100%';
-    }
 
     $('splitRows').querySelectorAll('[data-toggle]').forEach((el) => {
       el.addEventListener('change', () => {
         const cid = el.dataset.toggle;
         if (el.checked) working.push({ contributor_id: cid, pct: 0 });
         else working = working.filter((c) => c.contributor_id !== cid);
-        drawSplit();
+        drawSplit();   // membership changed: structure must be rebuilt
       });
     });
-    const setPct = (cid, v) => {
+
+    const setPct = (cid, v, sourceEl) => {
       const row = working.find((c) => c.contributor_id === cid);
       if (row) row.pct = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
-      drawSplit();
+      refreshSplitValues(sourceEl);   // values only — never innerHTML
     };
     $('splitRows').querySelectorAll('[data-range]').forEach((el) =>
-      el.addEventListener('input', () => setPct(el.dataset.range, el.value)));
-    $('splitRows').querySelectorAll('[data-num]').forEach((el) =>
-      el.addEventListener('change', () => setPct(el.dataset.num, el.value)));
+      el.addEventListener('input', () => setPct(el.dataset.range, el.value, el)));
+    $('splitRows').querySelectorAll('[data-num]').forEach((el) => {
+      el.addEventListener('input', () => setPct(el.dataset.num, el.value, el));
+      el.addEventListener('change', () => refreshSplitValues());
+    });
+
+    syncSplit();
   }
 
   if (leaf) {
     drawSplit();
-    if (store.canEdit) {
-      $('splitEvenBtn').onclick = () => {
-        working = evenSplit(working.map((c) => c.contributor_id));
-        drawSplit();
-      };
-      $('splitNormBtn').onclick = () => {
-        working = normalizeSplit(working);
-        drawSplit();
-      };
-    }
+    $('splitEvenBtn').onclick = () => {
+      working = evenSplit(working.map((c) => c.contributor_id));
+      refreshSplitValues();
+    };
+    $('splitNormBtn').onclick = () => {
+      working = normalizeSplit(working);
+      refreshSplitValues();
+    };
   }
 
-  // --- save
-  const saveBtn = $('saveNodeBtn');
-  if (saveBtn) {
-    saveBtn.onclick = async () => {
-      const before = structuredClone(n);
-      if (n.parent_id != null) n.weight = Math.max(0, Number(weightInput.value) || 0);
-      if (leaf) {
-        n.progress = Math.max(0, Math.min(100, Number($('nodeProgress').value) || 0));
-        n.status = $('nodeStatus').value;
-        n.contributions = working.filter((c) => c.pct > 0);
+  // --- save field edits
+  $('saveNodeBtn').onclick = async () => {
+    const before = structuredClone(n);
+    const btn = $('saveNodeBtn');
+    n.title = $('nodeTitle').value.trim() || n.title;
+    if (!isRoot) {
+      n.type = $('nodeType').value;
+      n.weight = Math.max(0, Number(weightInput.value) || 0);
+    }
+    n.target_date = $('nodeTarget').value;
+    if (leaf) {
+      n.progress = Math.max(0, Math.min(100, Number($('nodeProgress').value) || 0));
+      n.status = $('nodeStatus').value;
+      n.contributions = working.filter((c) => c.pct > 0);
+    }
+    n.notes = $('nodeNotes').value.trim();
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    const res = await save(diffNode(before, n));
+    btn.textContent = 'Save changes';
+    btn.disabled = false;
+
+    if (res.ok) {
+      renderAll();
+      closeDrawer();
+    } else {
+      Object.assign(n, before);
+      $('saveMsg').innerHTML = `<span style="color:var(--danger)">${esc(res.message)}</span>`;
+      if (res.conflict) {
+        banner(`${esc(res.message)} Your edit was not saved.`, 'bad',
+          { label: 'Reload', fn: () => window.location.reload() });
       }
-      n.notes = $('nodeNotes').value.trim();
+    }
+  };
 
-      const entries = diffNode(before, n);
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Saving…';
-      const res = await save(entries);
-      saveBtn.textContent = 'Save changes';
-      saveBtn.disabled = false;
+  // --- structure: add child
+  const addChild = async () => {
+    const title = $('newChildTitle').value.trim();
+    if (!title) return;
+    const btn = $('addChildBtn');
+    btn.disabled = true;
+    const child = addChildNode(id, title);
+    const res = await saveStructure([{
+      node_id: child.id, node_title: child.title, field: 'created',
+      old_value: '', new_value: `under ${n.title}`,
+    }]);
+    btn.disabled = false;
+    if (res.ok) {
+      renderAll();
+      openNode(child.id);         // drop straight into the new node
+    } else {
+      deleteSubtree(child.id);
+      $('structMsg').innerHTML = `<span style="color:var(--danger)">${esc(res.message)}</span>`;
+    }
+  };
+  $('addChildBtn').onclick = addChild;
+  $('newChildTitle').addEventListener('keydown', (e) => { if (e.key === 'Enter') addChild(); });
 
+  if (!isRoot) {
+    // --- structure: move
+    $('moveParent').onchange = async (e) => {
+      const target = e.target.value;
+      if (target === n.parent_id) return;
+      const prev = n.parent_id;
+      n.parent_id = target;
+      const res = await saveStructure([{
+        node_id: n.id, node_title: n.title, field: 'moved',
+        old_value: nodeById(prev)?.title ?? prev, new_value: nodeById(target)?.title ?? target,
+      }]);
+      if (res.ok) {
+        renderAll();
+        openNode(id);
+      } else {
+        n.parent_id = prev;
+        e.target.value = prev;
+        $('structMsg').innerHTML = `<span style="color:var(--danger)">${esc(res.message)}</span>`;
+      }
+    };
+
+    // --- structure: delete
+    let armed = false;
+    $('deleteNodeBtn').onclick = async (e) => {
+      const btn = e.currentTarget;
+      const count = subtreeIds(id).length;
+      if (!armed) {
+        armed = true;
+        btn.textContent = count > 1
+          ? `Really delete ${count} nodes? Click again`
+          : 'Really delete? Click again';
+        setTimeout(() => {
+          if (!armed) return;
+          armed = false;
+          btn.textContent = count > 1 ? `Delete node and ${count - 1} descendants` : 'Delete node';
+        }, 4000);
+        return;
+      }
+      btn.disabled = true;
+      const snapshot = structuredClone(db().nodes);
+      deleteSubtree(id);
+      const res = await saveStructure([{
+        node_id: n.id, node_title: n.title, field: 'deleted',
+        old_value: `${count} node${count === 1 ? '' : 's'}`, new_value: '',
+      }]);
       if (res.ok) {
         renderAll();
         closeDrawer();
       } else {
-        Object.assign(n, before);
-        $('saveMsg').innerHTML = `<span style="color:var(--danger)">${esc(res.message)}</span>`;
-        if (res.conflict) {
-          banner(`${esc(res.message)} Your edit was not saved.`, 'bad',
-            { label: 'Reload', fn: () => window.location.reload() });
-        }
+        db().nodes = snapshot;
+        btn.disabled = false;
+        armed = false;
+        $('structMsg').innerHTML = `<span style="color:var(--danger)">${esc(res.message)}</span>`;
       }
     };
   }
@@ -682,6 +958,7 @@ function centerRoot(retries = 4) {
   });
   again();
 }
+$('addTopNodeBtn').onclick = () => openNode('root');   // add-a-child lives in the node drawer
 $('centerRootBtn').onclick = () => centerRoot();   // not `= centerRoot`: the MouseEvent would land in `retries`
 $('fitTreeBtn').onclick = () => {
   treeViewport.scrollTo({ left: 0, top: 0, behavior: 'instant' });

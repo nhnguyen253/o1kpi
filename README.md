@@ -73,10 +73,16 @@ in a banner. The whole UI is reviewable this way without a backend.
 ### Tests
 
 ```bash
-node rollup.test.mjs
+node rollup.test.mjs      # 22 assertions — the credit/progress arithmetic
+node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
 ```
 
-22 assertions over the real seed data: the rollup arithmetic, that leaf shares
+`structure.test.mjs` covers the tricky part of editing the tree: adding a first
+child under a leaf must leave every number in the company unchanged, deleting
+the last child must hand the parent its progress and split back, and a node can
+never be moved inside its own subtree.
+
+`rollup.test.mjs` is 22 assertions over the real seed data: the rollup arithmetic, that leaf shares
 sum to 1, that allocated credit sums to 100%, that earned credit sums to root
 progress, plus weight edge cases (zero weights, all-equal weights, scaling) and
 tree validation (cycles, orphans). Run this before touching `rollup.js`.
@@ -127,6 +133,28 @@ a free plan — this closes the *data*, not the page shell.)
 
 ---
 
+## Editing the tree
+
+Click any node to open it. Beyond progress and the split you can change its
+**title, type, target date and weight**, and under **Structure**:
+
+- **Add a child.** If the node was a leaf, its first child inherits the node's
+  progress, status and split — so the company number doesn't jump when you break
+  work into sub-tasks. Later children start empty.
+- **Move under.** Pick a new parent. The node's own descendants are excluded, so
+  you can't move a node inside itself.
+- **Delete.** Removes the node and everything beneath it (click twice to
+  confirm). If that empties the parent, the parent gets the subtree's rolled-up
+  progress and contributor mix written back onto it, so deleting is the exact
+  inverse of adding.
+
+Structural edits are validated before they save — anything that would produce a
+cycle or an orphan is refused with a message rather than breaking the page.
+
+Nodes with no contributors assigned still hold company share; that share shows
+up as an **Unassigned** row on the Credit tab rather than being silently
+redistributed.
+
 ## Architecture
 
 | File | Role |
@@ -142,6 +170,7 @@ a free plan — this closes the *data*, not the page shell.)
 | `open-editing.sql` | Intermediate step: signed-in users, no allowlist. |
 | `data/seed.json` | First-run seed and offline fallback. |
 | `migrate.mjs` | One-shot v1→v2 schema conversion. Already run; kept for reference. |
+| `structure.test.mjs` | Tests for add / move / delete node. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
 
 **Concurrency.** `os_state` has an integer `version`. A save matches on the
