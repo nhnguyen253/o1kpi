@@ -485,6 +485,50 @@
       ]
     },
     {
+      "id": "botbuilder",
+      "parent_id": "partnerships",
+      "type": "branch",
+      "title": "Bot Builder / Frontend Partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bb5",
+      "parent_id": "botbuilder",
+      "type": "milestone",
+      "title": "5 partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bb10",
+      "parent_id": "botbuilder",
+      "type": "milestone",
+      "title": "10 partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bb15",
+      "parent_id": "botbuilder",
+      "type": "milestone",
+      "title": "15 partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
       "id": "capital",
       "parent_id": "root",
       "type": "category",

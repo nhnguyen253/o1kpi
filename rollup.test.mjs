@@ -57,8 +57,10 @@ test('company shares match hand-computed values', () => {
   near(companyShare(tree, 'risk'), 0.2, 1e-9, 'risk');
   near(companyShare(tree, 'credit'), 0.1, 1e-9, 'credit');
   near(companyShare(tree, 'score'), 0.1 / 6, 1e-9, 'score');    // 1 of V1's 6
-  near(companyShare(tree, 'traders'), 0.1, 1e-9, 'traders');    // 1 of partnerships' 2
-  near(companyShare(tree, 'tr20'), 0.1 / 3, 1e-9, 'tr20');
+  // Partnerships splits three ways: traders, venues, bot builders.
+  near(companyShare(tree, 'partnerships'), 0.2, 1e-9, 'partnerships');
+  near(companyShare(tree, 'traders'), 0.2 / 3, 1e-9, 'traders');
+  near(companyShare(tree, 'tr20'), 0.2 / 9, 1e-9, 'tr20');
   // Capital splits between the raise and the lender pool.
   near(companyShare(tree, 'capital'), 0.2, 1e-9, 'capital');
   near(companyShare(tree, 'raise'), 0.1, 1e-9, 'raise');
@@ -104,6 +106,17 @@ test('Credit Model V2 sits beside V1 and halves it', () => {
   for (const k of tree.childrenOf.get('creditv2')) {
     near(companyShare(tree, k.id), 0.05, 1e-9, k.id);
   }
+});
+
+test('bot builder partnerships sit beside traders and venues', () => {
+  assert.deepEqual(tree.childrenOf.get('partnerships').map((n) => n.title),
+    ['Trader Acquisition', 'Venue Integrations', 'Bot Builder / Frontend Partnerships']);
+  // Three even branches inside a fifth.
+  for (const b of tree.childrenOf.get('partnerships')) {
+    near(companyShare(tree, b.id), 0.2 / 3, 1e-9, b.id);
+  }
+  assert.deepEqual(tree.childrenOf.get('botbuilder').map((n) => n.title),
+    ['5 partnerships', '10 partnerships', '15 partnerships']);
 });
 
 test('every leaf split totals exactly 100', () => {
@@ -204,7 +217,10 @@ test('contributorMix is share-weighted, not a raw count', () => {
 });
 
 test('contributorMix totals 100 for a fully staffed subtree', () => {
-  for (const id of ['market', 'credit', 'partnerships', 'venues']) {
+  // Not 'partnerships' any more — its bot builder branch is unstaffed, so its
+  // mix falls short on purpose. Only subtrees with a contributor on every leaf
+  // belong in this list.
+  for (const id of ['market', 'credit', 'traders', 'venues']) {
     const total = contributorMix(tree, id).reduce((s, c) => s + c.pct, 0);
     near(total, 100, 1e-6, `${id} mix`);
   }
