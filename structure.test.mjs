@@ -1,11 +1,19 @@
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
-import { buildTree, rolledProgress, creditByContributor, leaves, companyShare, contributorMix, normalizeSplit } from './rollup.js';
+import { buildTree, creditByContributor, leaves, companyShare, contributorMix, normalizeSplit } from './rollup.js';
 
 const seed = JSON.parse(readFileSync('./data/seed.json','utf8'));
 let pass = 0;
 const t = (n,f)=>{ try{ f(); pass++; console.log('  ok  '+n);}catch(e){ console.error('  FAIL '+n+'\n       '+e.message); process.exitCode=1; } };
 const near=(a,b,tol=1e-9,m='')=>assert.ok(Math.abs(a-b)<tol, `${m} expected ${b} got ${a}`);
+
+/** Company share held by leaves with nobody assigned. Never redistributed. */
+const unstaffedShare = (t) => leaves(t)
+  .filter(l => !(l.contributions ?? []).length)
+  .reduce((s,l) => s + companyShare(t,l.id)*100, 0);
+/** Allocated credit and the unassigned remainder must always close to 100. */
+const totalsClose = (t,m='') =>
+  near(creditByContributor(t).reduce((s,c)=>s+c.allocated,0) + unstaffedShare(t), 100, 1e-9, m);
 
 // Mirror of addChildNode from app.js
 function addChild(nodes, parentId, title) {
@@ -13,12 +21,10 @@ function addChild(nodes, parentId, title) {
   const parent = nodes.find(n=>n.id===parentId);
   const first = (tree.childrenOf.get(parentId)??[]).length===0;
   const child = { id:'x'+nodes.length, parent_id:parentId, type:'milestone', title,
-                  weight:1, progress:0, status:'not_started', target_date:'', notes:'', contributions:[] };
+                  weight:1, status:'not_started', target_date:'', notes:'', contributions:[] };
   if (first) {
-    child.progress = Number(parent.progress)||0;
     child.status = parent.status;
     child.contributions = parent.contributions ?? [];
-    delete parent.progress;
     parent.contributions = [];
   }
   nodes.push(child);
@@ -28,29 +34,33 @@ function addChild(nodes, parentId, title) {
 console.log('\nadd child');
 t('first child under a leaf leaves every number unchanged', () => {
   const nodes = structuredClone(seed.nodes);
-  const beforeRoot = rolledProgress(buildTree(nodes),'root');
-  const beforeCredit = creditByContributor(buildTree(nodes));
+  const beforeTree = buildTree(nodes);
+  const beforeBackend = companyShare(beforeTree,'backend');
+  const beforeCredit = creditByContributor(beforeTree);
   addChild(nodes,'backend','API endpoints');
   const tree = buildTree(nodes);
-  near(rolledProgress(tree,'root'), beforeRoot, 1e-9, 'root');
+  // The child now holds the whole of what the parent held.
+  near(companyShare(tree,'backend'), beforeBackend, 1e-9, 'backend share');
+  near(companyShare(tree,nodes[nodes.length-1].id), beforeBackend, 1e-9, 'child share');
   const after = creditByContributor(tree);
   for (const b of beforeCredit) {
     const a = after.find(x=>x.contributor_id===b.contributor_id);
     near(a.allocated, b.allocated, 1e-9, b.contributor_id+' allocated');
-    near(a.earned, b.earned, 1e-9, b.contributor_id+' earned');
   }
 });
 t('parent stops holding contributions once it has a child', () => {
   const nodes = structuredClone(seed.nodes);
   addChild(nodes,'backend','API endpoints');
   assert.equal(nodes.find(n=>n.id==='backend').contributions.length, 0);
-  assert.equal(nodes.find(n=>n.id==='backend').progress, undefined);
 });
-t('second child starts empty and dilutes the parent', () => {
+t('a second child halves what the first one holds', () => {
   const nodes = structuredClone(seed.nodes);
-  addChild(nodes,'backend','API endpoints');       // inherits 70
-  addChild(nodes,'backend','Webhooks');            // starts 0
-  near(rolledProgress(buildTree(nodes),'backend'), 35, 1e-9);
+  const parentShare = companyShare(buildTree(nodes),'backend');
+  const a = addChild(nodes,'backend','API endpoints');   // inherits the split
+  const b = addChild(nodes,'backend','Webhooks');        // starts unstaffed
+  const tree = buildTree(nodes);
+  near(companyShare(tree,a.id), parentShare/2, 1e-9, 'first child');
+  near(companyShare(tree,b.id), parentShare/2, 1e-9, 'second child');
 });
 t('new empty nodes leave credit unallocated, not miscounted', () => {
   const nodes = structuredClone(seed.nodes);
@@ -60,12 +70,8 @@ t('new empty nodes leave credit unallocated, not miscounted', () => {
   // 'b' and 'c' have no contributors yet, so their share of the company belongs
   // to nobody. Allocated must fall short by exactly the share of unstaffed
   // leaves — never silently redistribute it.
-  const allocated = creditByContributor(tree).reduce((s,c)=>s+c.allocated,0);
-  const unstaffed = leaves(tree)
-    .filter(l => !(l.contributions ?? []).length)
-    .reduce((s,l)=>s+companyShare(tree,l.id)*100, 0);
-  near(allocated + unstaffed, 100, 1e-9, 'allocated + unstaffed');
-  assert.ok(unstaffed > 0, 'this fixture should have unstaffed leaves');
+  totalsClose(tree, 'allocated + unstaffed');
+  assert.ok(unstaffedShare(tree) > 0, 'this fixture should have unstaffed leaves');
 });
 
 console.log('\ndelete + move');
@@ -77,14 +83,14 @@ t('deleting a subtree removes exactly its descendants', () => {
   const left = nodes.filter(n=>!doomed.has(n.id));
   const tree = buildTree(left);
   near(leaves(tree).reduce((s,l)=>s+companyShare(tree,l.id),0), 1, 1e-9, 'shares still sum to 1');
-  near(creditByContributor(tree).reduce((s,c)=>s+c.allocated,0), 100, 1e-9, 'allocated still 100');
+  totalsClose(tree, 'totals still closed');
 });
 t('moving a node keeps the tree valid and totals closed', () => {
   const nodes = structuredClone(seed.nodes);
   nodes.find(n=>n.id==='backtest').parent_id = 'eng';
   const tree = buildTree(nodes);
   near(leaves(tree).reduce((s,l)=>s+companyShare(tree,l.id),0), 1, 1e-9);
-  near(creditByContributor(tree).reduce((s,c)=>s+c.allocated,0), 100, 1e-9);
+  totalsClose(tree);
 });
 t('moving a node inside its own subtree is rejected', () => {
   const nodes = structuredClone(seed.nodes);
@@ -98,31 +104,31 @@ t('deleting the only child restores the parent as a leaf', () => {
   const child = addChild(nodes,'r5','temp');
   // now delete it, mirroring deleteSubtree's carry-back
   let tree = buildTree(nodes);
-  const carriedProgress = rolledProgress(tree,'r5');
   const carriedMix = contributorMix(tree,'r5');
   const idx = nodes.findIndex(n=>n.id===child.id);
   nodes.splice(idx,1);
   const parent = nodes.find(n=>n.id==='r5');
-  parent.progress = Math.round(carriedProgress);
   parent.contributions = normalizeSplit(carriedMix);
-  assert.equal(parent.progress, r5before.progress, 'progress restored');
   assert.deepEqual(
     parent.contributions.map(c=>c.contributor_id).sort(),
     r5before.contributions.map(c=>c.contributor_id).sort(),
     'contributors restored');
   near(parent.contributions.reduce((s,c)=>s+c.pct,0), 100, 1e-9, 'split totals 100');
 });
-t('round trip on a staffed leaf preserves company progress', () => {
+t('round trip on a staffed leaf preserves every credit number', () => {
   const nodes = structuredClone(seed.nodes);
-  const before = rolledProgress(buildTree(nodes),'root');
+  const before = creditByContributor(buildTree(nodes));
   const child = addChild(nodes,'backend','temp');
   let tree = buildTree(nodes);
-  const cp = rolledProgress(tree,'backend'), cm = contributorMix(tree,'backend');
+  const cm = contributorMix(tree,'backend');
   nodes.splice(nodes.findIndex(n=>n.id===child.id),1);
   const parent = nodes.find(n=>n.id==='backend');
-  parent.progress = Math.round(cp);
   parent.contributions = normalizeSplit(cm);
-  near(rolledProgress(buildTree(nodes),'root'), before, 1e-9, 'root unchanged');
+  const after = creditByContributor(buildTree(nodes));
+  for (const b of before) {
+    const a = after.find(x=>x.contributor_id===b.contributor_id);
+    near(a.allocated, b.allocated, 1e-9, b.contributor_id+' allocated');
+  }
 });
 
 console.log(`\n${pass} passed${process.exitCode?', SOME FAILED':''}\n`);

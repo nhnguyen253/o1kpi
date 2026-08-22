@@ -1,14 +1,16 @@
 /**
- * Pure weight / progress / credit math for the KPI tree.
+ * Pure weight / credit math for the KPI tree.
  *
  * Model
  * -----
  * Every node carries a free-form `weight` (default 1). A node's share of its
  * parent is its weight over the sum of its siblings' weights, so adding a
- * sibling never forces you to re-edit the others.
+ * sibling never forces you to re-edit the others. Multiplying those shares
+ * down a path gives the node's share of the whole company.
  *
- * Progress is authored only on leaves. A parent's progress is the
- * weight-weighted average of its children, recursively.
+ * There is no progress percentage. This tree answers two questions only:
+ * how much does each node matter (weight), and who did the work on it
+ * (contributions).
  *
  * Contributions live only on leaves, as percentages totalling 100. Because
  * leaf company-shares sum to 1, credit across people sums to 100% with no
@@ -74,17 +76,6 @@ export function weightShare(tree, id) {
   return weightOf(n) / total;
 }
 
-/** Leaf: authored progress. Parent: weighted average of children. 0-100. */
-export function rolledProgress(tree, id, _seen = new Set()) {
-  const n = tree.byId.get(id);
-  if (!n) return 0;
-  const kids = children(tree, id);
-  if (!kids.length) return clamp(Number(n.progress) || 0);
-  return clamp(
-    kids.reduce((s, c) => s + weightShare(tree, c.id) * rolledProgress(tree, c.id, _seen), 0)
-  );
-}
-
 /** Fraction of the whole company this node represents. Root = 1. */
 export function companyShare(tree, id) {
   let share = 1;
@@ -99,30 +90,26 @@ export function companyShare(tree, id) {
 /**
  * Credit per contributor, as percentages.
  *
- *   allocated — share of the whole roadmap this person owns. Sums to 100.
- *   earned    — share of progress actually achieved that is theirs.
- *               Sums to the company's rolled-up progress. This is the honest
- *               number: being assigned to a not-started node earns nothing.
+ *   allocated — share of the whole roadmap this person owns. Sums to 100
+ *               across everyone, minus whatever sits on unstaffed leaves.
  */
 export function creditByContributor(tree) {
   const acc = new Map();
-  const bump = (id, field, amount) => {
-    if (!acc.has(id)) acc.set(id, { contributor_id: id, allocated: 0, earned: 0, leaf_count: 0 });
-    acc.get(id)[field] += amount;
+  const bump = (id, amount) => {
+    if (!acc.has(id)) acc.set(id, { contributor_id: id, allocated: 0, leaf_count: 0 });
+    acc.get(id).allocated += amount;
   };
 
   for (const leaf of leaves(tree)) {
     const share = companyShare(tree, leaf.id);
-    const done = clamp(Number(leaf.progress) || 0) / 100;
     for (const c of leaf.contributions ?? []) {
       const frac = (Number(c.pct) || 0) / 100;
-      bump(c.contributor_id, 'allocated', share * frac * 100);
-      bump(c.contributor_id, 'earned', share * frac * done * 100);
+      bump(c.contributor_id, share * frac * 100);
       acc.get(c.contributor_id).leaf_count += 1;
     }
   }
 
-  return [...acc.values()].sort((a, b) => b.earned - a.earned || b.allocated - a.allocated);
+  return [...acc.values()].sort((a, b) => b.allocated - a.allocated);
 }
 
 /**
@@ -219,8 +206,4 @@ export function pathTo(tree, id) {
     n = n.parent_id != null ? tree.byId.get(n.parent_id) : null;
   }
   return out;
-}
-
-function clamp(v) {
-  return Math.max(0, Math.min(100, v));
 }

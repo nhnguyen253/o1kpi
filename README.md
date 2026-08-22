@@ -19,40 +19,28 @@ over the sum of its siblings' weights — so weights are relative, and adding a
 sibling never forces you to re-edit the others. All weights start at 1, which
 means an even split.
 
-**Progress rolls up.** You only type a progress number on *leaf* nodes. Every
-parent is the weight-weighted average of its children, all the way to the root.
-Nobody hand-types the company number any more.
-
 **Contribution splits.** Each leaf carries percentages across contributors that
 must total exactly 100. Splits live on leaves only — that is what makes credit
 sum cleanly instead of double-counting a parent against its own children. If a
 parent needs its own credit, add a child node for that work.
 
-**Two credit numbers**, both on the Credit tab:
+**One credit number**, on the Credit tab. **Allocated** is your share of the
+whole roadmap: each leaf's fraction of the company times your percentage on it.
+It sums to 100% across everyone, less whatever sits on leaves nobody is assigned
+to — that shortfall shows as an "Unassigned" row rather than being quietly
+redistributed.
 
-| | Meaning | Sums to |
-|---|---|---|
-| **Allocated** | Share of the whole roadmap you own | 100% |
-| **Earned** | Share of progress *actually achieved* that's yours | company progress |
+### There is no progress percentage
 
-Earned is the honest one — being assigned to a not-started node earns nothing.
+This tree answers two questions and no others: **how much does each node matter**
+(its weight), and **who did the work on it** (its contribution split). It does
+not track how far along anything is. Credit depends on weight and split, never
+on completion — being assigned to a not-started node is worth exactly what being
+assigned to a finished one is worth.
 
-### One-time change from the old file
-
-The old dashboard let you type a percentage at every level, so parents drifted
-free of their children. Recomputing from even weights moves some numbers:
-
-| Node | Was (hand-typed) | Now (computed) |
-|---|---|---|
-| **01 Company KPIs** | 46 | **47.5** |
-| Engineering / Product | 68 | 72.5 |
-| Credit / Risk | 55 | 59.7 |
-| Partnership Acquisition | 38 | 30.5 |
-| Capital | 30 | 27.5 |
-
-That is the model working, not a regression. Tuning the weights — is Capital
-really worth as much as Engineering? — is now an explicit argument you have in
-the UI instead of a number someone typed once.
+The categorical **status** (not started / in progress / blocked / done) is still
+there, because a blocked node is worth surfacing on the dashboard. It is a flag,
+not a number, and it feeds nothing in the credit math.
 
 ---
 
@@ -73,18 +61,19 @@ in a banner. The whole UI is reviewable this way without a backend.
 ### Tests
 
 ```bash
-node rollup.test.mjs      # 22 assertions — the credit/progress arithmetic
+node rollup.test.mjs      # 24 assertions — the weight and credit arithmetic
 node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
 ```
 
 `structure.test.mjs` covers the tricky part of editing the tree: adding a first
-child under a leaf must leave every number in the company unchanged, deleting
-the last child must hand the parent its progress and split back, and a node can
-never be moved inside its own subtree.
+child under a leaf must leave every credit number unchanged, deleting the last
+child must hand the parent its split back, and a node can never be moved inside
+its own subtree.
 
-`rollup.test.mjs` is 22 assertions over the real seed data: the rollup arithmetic, that leaf shares
-sum to 1, that allocated credit sums to 100%, that earned credit sums to root
-progress, plus weight edge cases (zero weights, all-equal weights, scaling) and
+`rollup.test.mjs` is 24 assertions over the real seed data: that leaf shares sum
+to 1, that allocated credit plus unassigned share sums to 100%, that company
+shares match hand-computed
+values, plus weight edge cases (zero weights, all-equal weights, scaling) and
 tree validation (cycles, orphans). Run this before touching `rollup.js`.
 
 ---
@@ -135,17 +124,17 @@ a free plan — this closes the *data*, not the page shell.)
 
 ## Editing the tree
 
-Click any node to open it. Beyond progress and the split you can change its
+Click any node to open it. Beyond the status and the split you can change its
 **title, type, target date and weight**, and under **Structure**:
 
 - **Add a child.** If the node was a leaf, its first child inherits the node's
-  progress, status and split — so the company number doesn't jump when you break
-  work into sub-tasks. Later children start empty.
+  status and split — so nobody's credit jumps when you break work into
+  sub-tasks. Later children start empty.
 - **Move under.** Pick a new parent. The node's own descendants are excluded, so
   you can't move a node inside itself.
 - **Delete.** Removes the node and everything beneath it (click twice to
   confirm). If that empties the parent, the parent gets the subtree's rolled-up
-  progress and contributor mix written back onto it, so deleting is the exact
+  status and contributor mix written back onto it, so deleting is the exact
   inverse of adding.
 
 Structural edits are validated before they save — anything that would produce a
@@ -160,7 +149,7 @@ redistributed.
 | File | Role |
 |---|---|
 | `index.html` | Markup and styles. No logic. |
-| `rollup.js` | Pure weight/progress/credit math. No DOM, no deps, testable in node. |
+| `rollup.js` | Pure weight/credit math. No DOM, no deps, testable in node. |
 | `app.js` | Rendering, the node drawer, the split editor. |
 | `store.js` | Load/save, auth, realtime, the concurrency guard. |
 | `config.js` | Supabase URL + anon key. |

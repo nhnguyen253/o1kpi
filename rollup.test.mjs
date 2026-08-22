@@ -5,13 +5,18 @@
 import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import {
-  buildTree, rolledProgress, companyShare, creditByContributor, leaves,
+  buildTree, companyShare, creditByContributor, leaves,
   weightShare, contributorMix, validateSplit, normalizeSplit, evenSplit,
   rolledStatus, subtreeLeaves,
 } from './rollup.js';
 
 const near = (a, b, tol = 1e-6, msg = '') =>
   assert.ok(Math.abs(a - b) < tol, `${msg} expected ${b}, got ${a}`);
+
+/** Company share held by leaves with nobody assigned. Never redistributed. */
+const unstaffedShare = (t) => leaves(t)
+  .filter((l) => !(l.contributions ?? []).length)
+  .reduce((s, l) => s + companyShare(t, l.id) * 100, 0);
 
 let passed = 0;
 const test = (name, fn) => {
@@ -24,35 +29,66 @@ const tree = buildTree(seed.nodes);
 
 console.log('\nseed invariants');
 
-// (72.5 + 358/6 + 30.5 + 27.5) / 4
-const ROOT_EXPECTED = (72.5 + 358 / 6 + 30.5 + 27.5) / 4; // 47.5416...
-
-test('root progress is 47.54 with even weights', () => {
-  near(rolledProgress(tree, 'root'), ROOT_EXPECTED, 1e-9);
-});
-
 test('leaf company shares sum to exactly 1', () => {
   near(leaves(tree).reduce((s, l) => s + companyShare(tree, l.id), 0), 1, 1e-9);
 });
 
-test('allocated credit sums to 100%', () => {
+test('allocated credit plus unstaffed share sums to 100%', () => {
+  // Operations is in the tree but nobody is assigned to it yet, so allocated
+  // deliberately falls short. The gap is shown as "Unassigned" on the Credit
+  // tab rather than being spread over the people who are assigned elsewhere.
   const total = creditByContributor(tree).reduce((s, c) => s + c.allocated, 0);
-  near(total, 100, 1e-9);
+  near(total + unstaffedShare(tree), 100, 1e-9);
+  assert.ok(unstaffedShare(tree) > 0, 'this seed should have unstaffed leaves');
 });
 
-test('earned credit sums to root progress', () => {
-  const total = creditByContributor(tree).reduce((s, c) => s + c.earned, 0);
-  near(total, rolledProgress(tree, 'root'), 1e-9);
+test('no node carries a progress field any more', () => {
+  for (const n of seed.nodes) {
+    assert.ok(!('progress' in n), `${n.id} still has a progress field`);
+  }
 });
 
-test('intermediate rollups match hand-computed values', () => {
-  near(rolledProgress(tree, 'market'), 72.5, 1e-6, 'market');
-  near(rolledProgress(tree, 'eng'), 72.5, 1e-6, 'eng');
-  near(rolledProgress(tree, 'credit'), 358 / 6, 1e-6, 'credit');
-  near(rolledProgress(tree, 'traders'), 50, 1e-6, 'traders');
-  near(rolledProgress(tree, 'venues'), 11, 1e-6, 'venues');
-  near(rolledProgress(tree, 'partnerships'), 30.5, 1e-6, 'partnerships');
-  near(rolledProgress(tree, 'capital'), 27.5, 1e-6, 'capital');
+test('company shares match hand-computed values', () => {
+  // Five systems at weight 1 -> a fifth each, then down the path.
+  near(companyShare(tree, 'eng'), 0.2, 1e-9, 'eng');
+  near(companyShare(tree, 'market'), 0.2, 1e-9, 'market');      // only child of eng
+  near(companyShare(tree, 'custody'), 0.05, 1e-9, 'custody');   // 1 of market's 4
+  // Credit / Risk splits between V1 and V2, so each holds half of its fifth.
+  near(companyShare(tree, 'risk'), 0.2, 1e-9, 'risk');
+  near(companyShare(tree, 'credit'), 0.1, 1e-9, 'credit');
+  near(companyShare(tree, 'score'), 0.1 / 6, 1e-9, 'score');    // 1 of V1's 6
+  near(companyShare(tree, 'traders'), 0.1, 1e-9, 'traders');    // 1 of partnerships' 2
+  near(companyShare(tree, 'tr20'), 0.1 / 3, 1e-9, 'tr20');
+  near(companyShare(tree, 'r5'), 0.1, 1e-9, 'r5');
+});
+
+test('Operations sits alongside the other systems and holds a fifth', () => {
+  const ops = tree.byId.get('ops');
+  assert.equal(ops.parent_id, 'root');
+  near(companyShare(tree, 'ops'), 0.2, 1e-9, 'ops');
+  const kids = tree.childrenOf.get('ops');
+  assert.deepEqual(kids.map((k) => k.title), [
+    'BD Conversation Management',
+    'KPI Tree Management',
+    'Accountability + Follow Through',
+    'Internal Organization of 01',
+  ]);
+  // Four even children of a fifth -> 5% of the company each.
+  for (const k of kids) near(companyShare(tree, k.id), 0.05, 1e-9, k.id);
+});
+
+test('Credit Model V2 sits beside V1 and halves it', () => {
+  const v2 = tree.byId.get('creditv2');
+  assert.equal(v2.parent_id, 'risk');
+  assert.deepEqual(tree.childrenOf.get('risk').map((n) => n.title),
+    ['Finish Credit Model V1', 'Finish Credit Model V2']);
+  near(companyShare(tree, 'creditv2'), companyShare(tree, 'credit'), 1e-9, 'V1 vs V2');
+  assert.deepEqual(tree.childrenOf.get('creditv2').map((n) => n.title),
+    ['Add market context to model', 'Watchdog addition']);
+  // Two even children of a tenth -> 5% of the company each.
+  for (const k of tree.childrenOf.get('creditv2')) {
+    near(companyShare(tree, k.id), 0.05, 1e-9, k.id);
+  }
 });
 
 test('every leaf split totals exactly 100', () => {
@@ -72,16 +108,21 @@ test('no non-leaf carries contributions', () => {
 
 console.log('\nweights');
 
-test('weighting a node up moves the parent toward it', () => {
+test('weighting a node up takes share from its siblings', () => {
   const nodes = structuredClone(seed.nodes);
-  const base = rolledProgress(buildTree(nodes), 'root');
-  // custody is 100%; leaning market's weight onto it must raise the root.
+  const before = buildTree(nodes);
+  const baseCustody = companyShare(before, 'custody');
+  const baseBackend = companyShare(before, 'backend');
   nodes.find((n) => n.id === 'custody').weight = 10;
-  const after = rolledProgress(buildTree(nodes), 'root');
-  assert.ok(after > base, `expected rise from ${base}, got ${after}`);
+  const after = buildTree(nodes);
+  assert.ok(companyShare(after, 'custody') > baseCustody, 'custody should gain');
+  assert.ok(companyShare(after, 'backend') < baseBackend, 'its siblings should give it up');
+  // The parent is unchanged: reweighting inside market never leaks upward.
+  near(companyShare(after, 'market'), companyShare(before, 'market'), 1e-9, 'market');
+  near(leaves(after).reduce((s, l) => s + companyShare(after, l.id), 0), 1, 1e-9, 'shares');
 });
 
-test('weight 0 drops a node out of progress and credit', () => {
+test('weight 0 drops a node out of credit', () => {
   const nodes = structuredClone(seed.nodes);
   nodes.find((n) => n.id === 'capital').weight = 0;
   const t = buildTree(nodes);
@@ -89,21 +130,26 @@ test('weight 0 drops a node out of progress and credit', () => {
   // r25's contributors keep credit only via other nodes; totals must still close.
   near(t.nodes.filter((n) => !t.childrenOf.get(n.id).length)
         .reduce((s, l) => s + companyShare(t, l.id), 0), 1, 1e-9, 'shares');
-  near(creditByContributor(t).reduce((s, c) => s + c.allocated, 0), 100, 1e-9, 'allocated');
+  near(creditByContributor(t).reduce((s, c) => s + c.allocated, 0) + unstaffedShare(t),
+       100, 1e-9, 'allocated + unstaffed');
 });
 
 test('all-zero sibling weights fall back to an even split', () => {
   const nodes = structuredClone(seed.nodes);
   nodes.filter((n) => n.parent_id === 'root').forEach((n) => { n.weight = 0; });
   const t = buildTree(nodes);
-  near(weightShare(t, 'eng'), 0.25, 1e-9);
-  near(rolledProgress(t, 'root'), ROOT_EXPECTED, 1e-9);
+  near(weightShare(t, 'eng'), 0.2, 1e-9);
+  near(creditByContributor(t).reduce((s, c) => s + c.allocated, 0) + unstaffedShare(t),
+       100, 1e-9, 'allocated + unstaffed');
 });
 
 test('weights are relative, so scaling them all changes nothing', () => {
   const nodes = structuredClone(seed.nodes);
   nodes.forEach((n) => { n.weight = (n.weight ?? 1) * 7; });
-  near(rolledProgress(buildTree(nodes), 'root'), ROOT_EXPECTED, 1e-9);
+  const t = buildTree(nodes);
+  for (const l of leaves(tree)) {
+    near(companyShare(t, l.id), companyShare(tree, l.id), 1e-12, `${l.id} share`);
+  }
 });
 
 console.log('\ncredit');
@@ -117,17 +163,19 @@ test('a single contributor at 100% on one leaf gets that leaf share', () => {
   assert.ok(saif.allocated >= share - 1e-9, 'saif must hold at least the backend share');
 });
 
-test('earned is zero for a not-started leaf but allocated is not', () => {
-  const nodes = structuredClone(seed.nodes);
-  // tr20 sits at 0% with isaiah + saif assigned.
-  const only = nodes.filter((n) => n.id === 'tr20' || n.parent_id === 'traders');
-  assert.ok(only.length > 0);
-  const t = buildTree(nodes);
-  const tr20 = t.byId.get('tr20');
-  assert.equal(tr20.progress, 0);
+test('a not-started leaf still carries its full allocated credit', () => {
+  // Credit follows weight and assignment only — how far along a node is has no
+  // bearing on it, which is the whole point of dropping progress.
+  const tr20 = tree.byId.get('tr20');
+  assert.equal(tr20.status, 'not_started');
   assert.ok((tr20.contributions ?? []).length > 0, 'tr20 should have contributors');
-  // Their earned contribution from tr20 specifically is 0.
-  near(companyShare(t, 'tr20') * (tr20.progress / 100), 0, 1e-12);
+  const credit = creditByContributor(tree);
+  const share = companyShare(tree, 'tr20') * 100;
+  for (const c of tr20.contributions) {
+    const row = credit.find((r) => r.contributor_id === c.contributor_id);
+    assert.ok(row.allocated >= share * (c.pct / 100) - 1e-9,
+      `${c.contributor_id} should hold their tr20 share`);
+  }
 });
 
 test('contributorMix is share-weighted, not a raw count', () => {
@@ -140,11 +188,20 @@ test('contributorMix is share-weighted, not a raw count', () => {
   assert.ok(after > before, `expected rise from ${before}, got ${after}`);
 });
 
-test('contributorMix totals 100 for any node with contributors', () => {
-  for (const id of ['root', 'market', 'credit', 'partnerships', 'venues']) {
+test('contributorMix totals 100 for a fully staffed subtree', () => {
+  for (const id of ['market', 'credit', 'partnerships', 'venues']) {
     const total = contributorMix(tree, id).reduce((s, c) => s + c.pct, 0);
     near(total, 100, 1e-6, `${id} mix`);
   }
+});
+
+test('contributorMix falls short by exactly the unstaffed share', () => {
+  // Root's subtree now includes unstaffed Operations leaves, so its chips add
+  // up to less than 100 — the same shortfall allocated credit shows, and for
+  // the same reason. Silently scaling it back to 100 would hide the gap.
+  const total = contributorMix(tree, 'root').reduce((s, c) => s + c.pct, 0);
+  near(total, 100 - unstaffedShare(tree), 1e-6, 'root mix');
+  near(contributorMix(tree, 'ops').reduce((s, c) => s + c.pct, 0), 0, 1e-9, 'ops mix');
 });
 
 console.log('\nsplit helpers');

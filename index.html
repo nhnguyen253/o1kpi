@@ -172,7 +172,7 @@ a { color:inherit; }
   margin:0 0 12px;
   font-size:14px;
 }
-.progress-row {
+.share-row {
   display:grid;
   grid-template-columns:1fr 90px 44px;
   gap:10px;
@@ -371,17 +371,6 @@ a { color:inherit; }
   line-height:1.2;
   letter-spacing:-.01em;
 }
-.node-progress {
-  height:5px;
-  margin-top:10px;
-  background:#252c35;
-  border-radius:999px;
-  overflow:hidden;
-}
-.node-progress > div {
-  height:100%;
-  background:var(--accent);
-}
 .chips {
   display:flex;
   flex-wrap:wrap;
@@ -449,7 +438,7 @@ a { color:inherit; }
 }
 .person-stats {
   display:grid;
-  grid-template-columns:repeat(3, minmax(0,1fr));
+  grid-template-columns:repeat(2, minmax(0,1fr));
   gap:8px;
   margin-top:14px;
 }
@@ -784,7 +773,7 @@ textarea {
 /* credit view */
 .credit-row {
   display:grid;
-  grid-template-columns:150px 1fr 84px 84px;
+  grid-template-columns:150px 1fr 96px;
   gap:12px;
   align-items:center;
   padding:12px 0;
@@ -804,8 +793,7 @@ textarea {
   overflow:hidden;
 }
 .bar > div { height:100%; border-radius:999px; }
-.bar.alloc > div { background:#3d4761; }
-.bar.earned > div { background:var(--accent); }
+.bar.alloc > div { background:var(--accent); }
 .credit-num { text-align:right; font-variant-numeric:tabular-nums; }
 .credit-num b { font-size:15px; }
 .credit-num span { display:block; font-size:10px; color:var(--muted); }
@@ -816,7 +804,7 @@ textarea {
 }
 .head-row {
   display:grid;
-  grid-template-columns:150px 1fr 84px 84px;
+  grid-template-columns:150px 1fr 96px;
   gap:12px;
   color:var(--muted);
   font-size:11px;
@@ -853,7 +841,6 @@ textarea {
 }
 .btn.danger:hover { border-color:var(--danger); }
 .btn.danger:disabled { opacity:.5; }
-.node.computed-progress .node-progress > div { background:#5a6790; }
 
 .empty { color:var(--muted); padding:18px 0; text-align:center; font-size:12px; }
 
@@ -901,7 +888,7 @@ textarea {
         <div class="metrics" id="metrics"></div>
         <div class="grid2">
           <div class="card">
-            <h3>Systems progress</h3>
+            <h3>Systems by weight</h3>
             <div id="systems"></div>
           </div>
           <div class="card">
@@ -915,14 +902,13 @@ textarea {
         <div class="section-head">
           <div>
             <h2>KPI Tree</h2>
-            <p>Parent progress is computed from child weights. Click a node to edit it.</p>
+            <p>Each node's share of the company is its weight over its siblings'. Click a node to edit it.</p>
           </div>
         </div>
         <div class="tree-shell">
           <div class="tree-toolbar">
             <div class="tree-toolbar-left">
               <span class="tree-pill">Drag to pan</span>
-              <span class="tree-pill" id="rootProgressPill">—</span>
               <input id="treeSearch" class="tree-search" placeholder="Jump to a node…" />
             </div>
             <div class="tree-toolbar-right">
@@ -950,13 +936,11 @@ textarea {
           <div class="head-row">
             <div>Contributor</div>
             <div>Share</div>
-            <div>Earned</div>
             <div>Allocated</div>
           </div>
           <div id="creditRows"></div>
           <div class="legend">
-            <span><i style="background:var(--accent)"></i>Earned — share of progress actually achieved</span>
-            <span><i style="background:#3d4761"></i>Allocated — share of the whole roadmap owned</span>
+            <span><i style="background:var(--accent)"></i>Allocated — share of the whole roadmap owned</span>
           </div>
         </div>
         <div class="card" style="margin-top:14px">
@@ -965,10 +949,10 @@ textarea {
             A node's share of its parent is its weight over the sum of its siblings' weights, so
             every leaf holds a fixed fraction of the company and those fractions sum to 1.
             <b>Allocated</b> is that fraction times your percentage on the node — it sums to 100%
-            across everyone. <b>Earned</b> is the same figure multiplied by how done the node
-            actually is, so it sums to the company's overall progress and being assigned to a
-            not-started node earns nothing. Change the weights to change what the company thinks
-            is important.
+            across everyone, less whatever sits on leaves nobody is assigned to. There is no
+            completion percentage anywhere in this model: it tracks what each piece of work is
+            worth and who is doing it, not how far along it is. Change the weights to change what
+            the company thinks is important.
           </p>
         </div>
       </section>

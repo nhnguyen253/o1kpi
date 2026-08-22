@@ -97,8 +97,7 @@
           "contributor_id": "saif",
           "pct": 50
         }
-      ],
-      "progress": 100
+      ]
     },
     {
       "id": "backend",
@@ -114,8 +113,7 @@
           "contributor_id": "saif",
           "pct": 100
         }
-      ],
-      "progress": 70
+      ]
     },
     {
       "id": "frontend",
@@ -135,8 +133,7 @@
           "contributor_id": "nam",
           "pct": 50
         }
-      ],
-      "progress": 62
+      ]
     },
     {
       "id": "ux",
@@ -152,8 +149,7 @@
           "contributor_id": "ethan",
           "pct": 100
         }
-      ],
-      "progress": 58
+      ]
     },
     {
       "id": "risk",
@@ -193,8 +189,7 @@
           "contributor_id": "nam",
           "pct": 100
         }
-      ],
-      "progress": 70
+      ]
     },
     {
       "id": "buffer",
@@ -210,8 +205,7 @@
           "contributor_id": "nam",
           "pct": 100
         }
-      ],
-      "progress": 60
+      ]
     },
     {
       "id": "runway",
@@ -231,8 +225,7 @@
           "contributor_id": "nam",
           "pct": 50
         }
-      ],
-      "progress": 80
+      ]
     },
     {
       "id": "limit",
@@ -252,8 +245,7 @@
           "contributor_id": "nam",
           "pct": 50
         }
-      ],
-      "progress": 48
+      ]
     },
     {
       "id": "strategy",
@@ -273,8 +265,7 @@
           "contributor_id": "nam",
           "pct": 50
         }
-      ],
-      "progress": 42
+      ]
     },
     {
       "id": "backtest",
@@ -290,8 +281,40 @@
           "contributor_id": "nam",
           "pct": 100
         }
-      ],
-      "progress": 58
+      ]
+    },
+    {
+      "id": "creditv2",
+      "parent_id": "risk",
+      "type": "kpi",
+      "title": "Finish Credit Model V2",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "mktcontext",
+      "parent_id": "creditv2",
+      "type": "milestone",
+      "title": "Add market context to model",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "watchdog",
+      "parent_id": "creditv2",
+      "type": "milestone",
+      "title": "Watchdog addition",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
     },
     {
       "id": "partnerships",
@@ -339,8 +362,7 @@
           "contributor_id": "pmt0z6mh6",
           "pct": 33
         }
-      ],
-      "progress": 100
+      ]
     },
     {
       "id": "tr10",
@@ -364,8 +386,7 @@
           "contributor_id": "pmt0z6mh6",
           "pct": 33
         }
-      ],
-      "progress": 50
+      ]
     },
     {
       "id": "tr20",
@@ -385,8 +406,7 @@
           "contributor_id": "isaiah",
           "pct": 50
         }
-      ],
-      "progress": 0
+      ]
     },
     {
       "id": "venues",
@@ -422,8 +442,7 @@
           "contributor_id": "saif",
           "pct": 33
         }
-      ],
-      "progress": 33
+      ]
     },
     {
       "id": "v6",
@@ -443,8 +462,7 @@
           "contributor_id": "saif",
           "pct": 50
         }
-      ],
-      "progress": 0
+      ]
     },
     {
       "id": "v9",
@@ -464,8 +482,7 @@
           "contributor_id": "saif",
           "pct": 50
         }
-      ],
-      "progress": 0
+      ]
     },
     {
       "id": "capital",
@@ -509,8 +526,7 @@
           "contributor_id": "pmt0z6mh6",
           "pct": 50
         }
-      ],
-      "progress": 55
+      ]
     },
     {
       "id": "r5",
@@ -526,8 +542,62 @@
           "contributor_id": "ethan",
           "pct": 100
         }
-      ],
-      "progress": 0
+      ]
+    },
+    {
+      "id": "ops",
+      "parent_id": "root",
+      "type": "category",
+      "title": "Operations",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "How the company runs itself.",
+      "contributions": []
+    },
+    {
+      "id": "bdconvo",
+      "parent_id": "ops",
+      "type": "kpi",
+      "title": "BD Conversation Management",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "kpimgmt",
+      "parent_id": "ops",
+      "type": "kpi",
+      "title": "KPI Tree Management",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "followthru",
+      "parent_id": "ops",
+      "type": "kpi",
+      "title": "Accountability + Follow Through",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "internalorg",
+      "parent_id": "ops",
+      "type": "kpi",
+      "title": "Internal Organization of 01",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Company docs, CRMs, and internal tooling.",
+      "contributions": []
     }
   ],
   "history": [

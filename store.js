@@ -52,10 +52,23 @@ function emit(reason) {
   });
 }
 
+/**
+ * Drop fields the model no longer has.
+ *
+ * `progress` was removed: this tree tracks what each node is worth and who did
+ * the work, not how far along it is. Rows written before that change still
+ * carry the key, and since we persist the whole blob it would otherwise ride
+ * along forever. Stripping on load means the next save cleans it up.
+ */
+function normalize(db) {
+  for (const n of db?.nodes ?? []) delete n.progress;
+  return db;
+}
+
 async function fetchSeed() {
   const res = await fetch('./data/seed.json', { cache: 'no-store' });
   if (!res.ok) throw new Error(`could not load data/seed.json (${res.status})`);
-  return res.json();
+  return normalize(await res.json());
 }
 
 // ------------------------------------------------------------------ init
@@ -89,7 +102,7 @@ async function initLocal(reason) {
   const cached = localStorage.getItem(LOCAL_KEY);
   if (cached) {
     try {
-      store.db = JSON.parse(cached);
+      store.db = normalize(JSON.parse(cached));
       emit('init');
       return store;
     } catch { /* fall through to seed */ }
@@ -126,7 +139,7 @@ export async function load() {
     return store.db;
   }
 
-  store.db = data.data;
+  store.db = normalize(data.data);
   store.version = data.version;
   store.db.meta = { ...(store.db.meta ?? {}), updated_at: data.updated_at, updated_by: data.updated_by };
   store.lastError = null;
@@ -204,7 +217,7 @@ function subscribeRealtime() {
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'os_state' }, (payload) => {
       const incoming = payload.new;
       if (!incoming || incoming.version === store.version) return;
-      store.db = incoming.data;
+      store.db = normalize(incoming.data);
       store.version = incoming.version;
       emit('remote');
     })

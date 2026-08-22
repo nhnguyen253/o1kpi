@@ -1,11 +1,11 @@
 /**
  * 01 Internal OS — rendering and editing.
  *
- * Progress and credit come from rollup.js; nothing on this page hand-types a
- * parent's percentage any more. Persistence and auth come from store.js.
+ * Weights and credit come from rollup.js; nothing on this page hand-types a
+ * parent's share any more. Persistence and auth come from store.js.
  */
 import {
-  buildTree, children, isLeaf, leaves, rolledProgress, rolledStatus, companyShare,
+  buildTree, children, isLeaf, leaves, rolledStatus, companyShare,
   creditByContributor, contributorMix, subtreeLeaves,
   validateSplit, normalizeSplit, evenSplit, pathTo,
 } from './rollup.js';
@@ -106,7 +106,7 @@ function refreshBanner() {
 function renderMetrics() {
   const leafNodes = leaves(tree);
   const rows = [
-    ['Company progress', pct(rolledProgress(tree, 'root'))],
+    ['Leaf nodes', leafNodes.length],
     ['Milestones complete', `${leafNodes.filter((n) => n.status === 'done').length}/${leafNodes.length}`],
     ['Blocked', tree.nodes.filter((n) => isLeaf(tree, n.id) && n.status === 'blocked').length],
     ['Contributors', db().contributors.length],
@@ -125,16 +125,20 @@ function chipsFor(id, limit = 5) {
 }
 
 function renderSystems() {
-  $('systems').innerHTML = children(tree, 'root').map((n) => {
-    const p = rolledProgress(tree, n.id);
+  const tops = children(tree, 'root');
+  // Bars are scaled against the biggest system, not against 100 — with four
+  // even systems every bar would otherwise sit at a quarter and read as "low".
+  const maxShare = Math.max(...tops.map((n) => companyShare(tree, n.id)), 1e-9);
+  $('systems').innerHTML = tops.map((n) => {
+    const share = companyShare(tree, n.id);
     return `
-      <div class="progress-row">
+      <div class="share-row">
         <div>
           <b>${esc(n.title)}</b>
           <div class="chips">${chipsFor(n.id)}</div>
         </div>
-        <div class="track"><div style="width:${p}%"></div></div>
-        <div class="muted" style="text-align:right">${p.toFixed(0)}%</div>
+        <div class="track"><div style="width:${(share / maxShare) * 100}%"></div></div>
+        <div class="muted" style="text-align:right">${(share * 100).toFixed(0)}%</div>
       </div>`;
   }).join('');
 }
@@ -155,19 +159,20 @@ function renderBlockers() {
 
 function treeNodeHtml(n) {
   const kids = children(tree, n.id);
-  const p = rolledProgress(tree, n.id);
   const share = companyShare(tree, n.id) * 100;
-  const computed = kids.length > 0;
+  const isRoot = n.type === 'root';
   return `<li>
-    <div class="node ${esc(n.type)} ${computed ? 'computed-progress' : ''}" data-node="${esc(n.id)}">
+    <div class="node ${esc(n.type)}" data-node="${esc(n.id)}">
       <div class="node-title">${esc(n.title)}</div>
-      ${n.type !== 'root' ? `<div class="node-progress"><div style="width:${p}%"></div></div>` : ''}
       <div class="chips">${chipsFor(n.id, 3)}</div>
       <div class="node-meta">
-        <span>${p.toFixed(0)}%${computed ? ' <span class="node-share">calc</span>' : ''}</span>
-        <span>${n.type === 'root' ? '' : `${share.toFixed(1)}% of co.`}</span>
+        <span>${isRoot ? '' : `weight ${Number(n.weight ?? 1)}`}</span>
+        <span>${isRoot ? '' : `${share.toFixed(1)}% of co.`}</span>
       </div>
-      <div class="node-meta"><span>${esc(statusLabel(rolledStatus(tree, n.id)))}</span><span></span></div>
+      <div class="node-meta">
+        <span>${esc(statusLabel(rolledStatus(tree, n.id)))}</span>
+        <span>${kids.length ? `<span class="node-share">${kids.length} children</span>` : ''}</span>
+      </div>
     </div>
     ${kids.length ? `<ul>${kids.map(treeNodeHtml).join('')}</ul>` : ''}
   </li>`;
@@ -175,7 +180,6 @@ function treeNodeHtml(n) {
 
 function renderTree() {
   $('treeRoot').innerHTML = `<ul>${treeNodeHtml(tree.root)}</ul>`;
-  $('rootProgressPill').textContent = `Company ${pct(rolledProgress(tree, 'root'))}`;
   document.querySelectorAll('[data-node]').forEach((el) => {
     el.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -207,10 +211,8 @@ function renderCredit() {
           </div>
         </div>
         <div class="credit-bars">
-          <div class="bar earned"><div style="width:${(r.earned / maxAlloc) * 100}%"></div></div>
           <div class="bar alloc"><div style="width:${(r.allocated / maxAlloc) * 100}%"></div></div>
         </div>
-        <div class="credit-num"><b>${pct(r.earned)}</b><span>earned</span></div>
         <div class="credit-num"><b>${pct(r.allocated)}</b><span>of roadmap</span></div>
       </div>`;
   }).join('');
@@ -232,7 +234,6 @@ function renderCredit() {
         <div class="credit-bars">
           <div class="bar alloc"><div style="width:${(unstaffedShare / maxAlloc) * 100}%;background:#3a4350"></div></div>
         </div>
-        <div class="credit-num"><b>—</b><span></span></div>
         <div class="credit-num"><b>${pct(unstaffedShare)}</b><span>of roadmap</span></div>
       </div>`);
   }
@@ -243,7 +244,7 @@ function renderCredit() {
 function renderPeople() {
   const credit = new Map(creditByContributor(tree).map((c) => [c.contributor_id, c]));
   $('peopleGrid').innerHTML = db().contributors.map((p) => {
-    const c = credit.get(p.id) ?? { earned: 0, allocated: 0, leaf_count: 0 };
+    const c = credit.get(p.id) ?? { allocated: 0, leaf_count: 0 };
     return `
       <div class="person-card" data-person="${esc(p.id)}">
         <div class="person-top">
@@ -254,7 +255,6 @@ function renderPeople() {
           </div>
         </div>
         <div class="person-stats">
-          <div class="stat"><b>${pct(c.earned)}</b><span>Earned</span></div>
           <div class="stat"><b>${pct(c.allocated)}</b><span>Allocated</span></div>
           <div class="stat"><b>${c.leaf_count}</b><span>Nodes</span></div>
         </div>
@@ -320,10 +320,10 @@ function defaultChildType(parent) {
 /**
  * Add a child under `parentId`.
  *
- * If the parent was a leaf, it stops being one — its progress becomes computed
- * and it may no longer hold contributions (that would double-count against its
- * own children). So the FIRST child inherits the parent's progress, status and
- * split, which keeps every number in the tree exactly where it was.
+ * If the parent was a leaf, it stops being one — it may no longer hold
+ * contributions of its own (that would double-count against its children). So
+ * the FIRST child inherits the parent's status and split, which keeps every
+ * number in the tree exactly where it was.
  */
 function addChildNode(parentId, title) {
   const parent = nodeById(parentId);
@@ -334,17 +334,14 @@ function addChildNode(parentId, title) {
     type: defaultChildType(parent),
     title: title.trim() || 'Untitled',
     weight: 1,
-    progress: 0,
     status: 'not_started',
     target_date: '',
     notes: '',
     contributions: [],
   };
   if (firstChild) {
-    child.progress = Number(parent.progress) || 0;
     child.status = parent.status ?? 'not_started';
     child.contributions = parent.contributions ?? [];
-    delete parent.progress;
     parent.contributions = [];
   }
   db().nodes.push(child);
@@ -355,9 +352,9 @@ function addChildNode(parentId, title) {
  * Remove a node and everything under it.
  *
  * If this empties the parent, the parent becomes a leaf again — so it needs its
- * own progress and split back, or the numbers it was displaying vanish. We
- * capture its rolled-up values first and write them down onto it, which is the
- * exact inverse of what addChildNode does when a leaf gains its first child.
+ * own split back, or the credit it was carrying vanishes. We capture its
+ * rolled-up values first and write them down onto it, which is the exact
+ * inverse of what addChildNode does when a leaf gains its first child.
  */
 function deleteSubtree(id) {
   const node = nodeById(id);
@@ -366,7 +363,6 @@ function deleteSubtree(id) {
   const willEmptyParent = parent && children(tree, parentId).length === 1;
 
   // Snapshot before the tree changes underneath us.
-  const carriedProgress = willEmptyParent ? rolledProgress(tree, parentId) : null;
   const carriedStatus = willEmptyParent ? rolledStatus(tree, parentId) : null;
   const carriedSplit = willEmptyParent ? normalizeSplit(contributorMix(tree, parentId)) : null;
 
@@ -375,7 +371,6 @@ function deleteSubtree(id) {
   db().history = (db().history ?? []).filter((h) => !doomed.has(h.node_id));
 
   if (willEmptyParent) {
-    parent.progress = Math.round(carriedProgress);
     parent.status = carriedStatus;
     parent.contributions = carriedSplit;
   }
@@ -415,17 +410,6 @@ function openNode(id) {
 
   $('drawerTitle').textContent = n.title;
   $('drawerPath').textContent = pathTo(tree, id).map((x) => x.title).join(' / ');
-
-  const progressBlock = leaf
-    ? `<div class="field">
-         <label>Progress %</label>
-         <input id="nodeProgress" type="number" min="0" max="100" value="${n.progress ?? 0}">
-       </div>`
-    : `<div class="field">
-         <label>Progress (computed)</label>
-         <div class="computed"><b>${pct(rolledProgress(tree, id))}</b>
-           <span class="muted"> — weighted average of ${kids.length} ${kids.length === 1 ? 'child' : 'children'}</span></div>
-       </div>`;
 
   const statusBlock = leaf
     ? `<div class="field">
@@ -487,12 +471,9 @@ function openNode(id) {
         <input id="nodeTarget" type="date" value="${esc(n.target_date ?? '')}">
       </div>
     </div>
-    <div class="two">
-      <div class="field">
-        <label>Weight (relative to siblings)</label>
-        <input id="nodeWeight" type="number" min="0" step="0.5" value="${n.weight ?? 1}" ${isRoot ? 'disabled' : ''}>
-      </div>
-      ${progressBlock}
+    <div class="field">
+      <label>Weight (relative to siblings)</label>
+      <input id="nodeWeight" type="number" min="0" step="0.5" value="${n.weight ?? 1}" ${isRoot ? 'disabled' : ''}>
     </div>
     <div class="readout" id="weightReadout"></div>
     ${statusBlock}
@@ -514,7 +495,7 @@ function openNode(id) {
           <button class="btn" id="addChildBtn">Add</button>
         </div>
         ${leaf ? `<div class="readout">This node is a leaf. Its first child inherits
-          ${pct(Number(n.progress) || 0, 0)} progress and the current split, so nothing shifts.</div>` : ''}
+          the current split, so nothing shifts.</div>` : ''}
       </div>
       ${isRoot ? '' : `
       <div class="field">
@@ -652,7 +633,6 @@ function openNode(id) {
     }
     n.target_date = $('nodeTarget').value;
     if (leaf) {
-      n.progress = Math.max(0, Math.min(100, Number($('nodeProgress').value) || 0));
       n.status = $('nodeStatus').value;
       n.contributions = working.filter((c) => c.pct > 0);
     }
@@ -769,7 +749,6 @@ function diffNode(before, after) {
     }
   };
   push('weight', before.weight, after.weight);
-  push('progress', before.progress, after.progress);
   push('status', before.status, after.status);
   push('notes', (before.notes ?? '').slice(0, 120), (after.notes ?? '').slice(0, 120));
   const fmt = (list) => (list ?? []).map((c) => `${contributor(c.contributor_id).name} ${c.pct}%`).join(', ');
