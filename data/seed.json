@@ -545,6 +545,50 @@
       ]
     },
     {
+      "id": "lenderpool",
+      "parent_id": "capital",
+      "type": "branch",
+      "title": "Lender Pool Capital Acquisition",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Capital raised into the lender pool.",
+      "contributions": []
+    },
+    {
+      "id": "lp1",
+      "parent_id": "lenderpool",
+      "type": "milestone",
+      "title": "$1M lender pool",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "lp5",
+      "parent_id": "lenderpool",
+      "type": "milestone",
+      "title": "$5M lender pool",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "lp10",
+      "parent_id": "lenderpool",
+      "type": "milestone",
+      "title": "$10M lender pool",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
       "id": "ops",
       "parent_id": "root",
       "type": "category",

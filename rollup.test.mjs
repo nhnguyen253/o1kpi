@@ -59,7 +59,22 @@ test('company shares match hand-computed values', () => {
   near(companyShare(tree, 'score'), 0.1 / 6, 1e-9, 'score');    // 1 of V1's 6
   near(companyShare(tree, 'traders'), 0.1, 1e-9, 'traders');    // 1 of partnerships' 2
   near(companyShare(tree, 'tr20'), 0.1 / 3, 1e-9, 'tr20');
-  near(companyShare(tree, 'r5'), 0.1, 1e-9, 'r5');
+  // Capital splits between the raise and the lender pool.
+  near(companyShare(tree, 'capital'), 0.2, 1e-9, 'capital');
+  near(companyShare(tree, 'raise'), 0.1, 1e-9, 'raise');
+  near(companyShare(tree, 'r5'), 0.05, 1e-9, 'r5');
+});
+
+test('the lender pool sits beside the raise with three goals', () => {
+  assert.deepEqual(tree.childrenOf.get('capital').map((n) => n.title),
+    ['Capital Raise', 'Lender Pool Capital Acquisition']);
+  near(companyShare(tree, 'lenderpool'), companyShare(tree, 'raise'), 1e-9, 'raise vs pool');
+  assert.deepEqual(tree.childrenOf.get('lenderpool').map((n) => n.title),
+    ['$1M lender pool', '$5M lender pool', '$10M lender pool']);
+  // Three even goals inside a tenth.
+  for (const k of tree.childrenOf.get('lenderpool')) {
+    near(companyShare(tree, k.id), 0.1 / 3, 1e-9, k.id);
+  }
 });
 
 test('Operations sits alongside the other systems and holds a fifth', () => {
