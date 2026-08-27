@@ -49,29 +49,41 @@ test('no node carries a progress field any more', () => {
 });
 
 test('company shares match hand-computed values', () => {
-  // Five systems at weight 1 -> a fifth each. Under each sits a 2026 node and
-  // its quarters; because a quarter's weight is the sum of its children's,
-  // that layer is transparent and shares are what they'd be without it.
-  near(companyShare(tree, 'eng'), 0.2, 1e-9, 'eng');
-  near(companyShare(tree, 'eng2026'), 0.2, 1e-9, 'eng2026');
-  // Engineering holds V0 (1.5), V0.5 (0.5) and V1 (1.5) -> 3.5 total.
-  near(companyShare(tree, 'mktv0'), 0.2 * 1.5 / 3.5, 1e-9, 'mktv0');
-  near(companyShare(tree, 'mktv05'), 0.2 * 0.5 / 3.5, 1e-9, 'mktv05');
-  near(companyShare(tree, 'market'), 0.2 * 1.5 / 3.5, 1e-9, 'market');
-  // V1 splits backend / frontend, two leaves each.
-  near(companyShare(tree, 'custody'), 0.2 * 1.5 / 3.5 / 4, 1e-9, 'custody');
-  // Credit / Risk splits between V1 and V2.
-  near(companyShare(tree, 'credit'), 0.1, 1e-9, 'credit');
-  near(companyShare(tree, 'score'), 0.1 / 6, 1e-9, 'score');
-  // Partnerships is venues + bot builders now that traders moved to Capital.
+  // Four KPIs now: Technology at weight 2, the other three at 1.
+  near(companyShare(tree, 'tech'), 0.4, 1e-9, 'tech');
+  near(companyShare(tree, 'partnerships'), 0.2, 1e-9, 'partnerships');
+  near(companyShare(tree, 'capital'), 0.2, 1e-9, 'capital');
+  near(companyShare(tree, 'ops'), 0.2, 1e-9, 'ops');
+  // Inside Technology the model is weighted 2x the marketplace.
+  const model = 0.4 * 2 / 3, mkt = 0.4 / 3;
+  near(companyShare(tree, 'risk'), model, 1e-9, 'model');
+  near(companyShare(tree, 'eng'), mkt, 1e-9, 'marketplace');
+  // Marketplace holds V0 (1.5), V0.5 (0.5) and V1 (1.5) -> 3.5 total.
+  near(companyShare(tree, 'mktv0'), mkt * 1.5 / 3.5, 1e-9, 'mktv0');
+  near(companyShare(tree, 'mktv05'), mkt * 0.5 / 3.5, 1e-9, 'mktv05');
+  near(companyShare(tree, 'market'), mkt * 1.5 / 3.5, 1e-9, 'market');
+  near(companyShare(tree, 'custody'), mkt * 1.5 / 3.5 / 4, 1e-9, 'custody');
+  // The model splits evenly between V1 and V2.
+  near(companyShare(tree, 'credit'), model / 2, 1e-9, 'credit');
+  near(companyShare(tree, 'score'), model / 12, 1e-9, 'score');
+  // The fold left Partnerships, Capital and Operations untouched.
   near(companyShare(tree, 'venues'), 0.1, 1e-9, 'venues');
-  near(companyShare(tree, 'v3'), 0.1 / 3, 1e-9, 'v3');
-  // Capital is the raise, the lender pool and trader acquisition.
   near(companyShare(tree, 'raise'), 0.2 / 3, 1e-9, 'raise');
-  near(companyShare(tree, 'r5'), 0.2 / 6, 1e-9, 'r5');
   near(companyShare(tree, 'tr20'), 0.2 / 9, 1e-9, 'tr20');
-  // Operations gained Legal, so five even children.
   near(companyShare(tree, 'bdconvo'), 0.04, 1e-9, 'bdconvo');
+});
+
+test('Technology folds the model and the marketplace, keeping its own share', () => {
+  assert.deepEqual(tree.childrenOf.get('root').map((n) => n.title),
+    ['Technology', 'Partnership Acquisition', 'Capital', 'Operations']);
+  assert.deepEqual(tree.childrenOf.get('tech').map((n) => n.title),
+    ['Credit / Risk Model', 'Marketplace']);
+  // The model is worth exactly twice the marketplace.
+  near(companyShare(tree, 'risk'), 2 * companyShare(tree, 'eng'), 1e-9, '2:1');
+  // Technology's weight was set to the sum of the two branches it replaced, so
+  // the fold changed the split inside technology and nothing outside it.
+  near(companyShare(tree, 'tech'),
+       companyShare(tree, 'risk') + companyShare(tree, 'eng'), 1e-9, 'tech total');
 });
 
 test('the quarter layer shifts nobody\'s share', () => {
@@ -195,7 +207,7 @@ test('all-zero sibling weights fall back to an even split', () => {
   const nodes = structuredClone(seed.nodes);
   nodes.filter((n) => n.parent_id === 'root').forEach((n) => { n.weight = 0; });
   const t = buildTree(nodes);
-  near(weightShare(t, 'eng'), 0.2, 1e-9);
+  near(weightShare(t, 'tech'), 0.25, 1e-9);   // four root children now
   near(creditByContributor(t).reduce((s, c) => s + c.allocated, 0) + unstaffedShare(t),
        100, 1e-9, 'allocated + unstaffed');
 });

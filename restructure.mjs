@@ -93,6 +93,7 @@ export function restructure(nodes) {
  * and the backend build should lead custody rather than trail it.
  */
 const ORDER = {
+  tech: ['risk', 'eng'],   // the model leads; it is the heavier of the two
   capitalq3: ['raise', 'lenderpool', 'traders'],
   be: ['backend', 'custody'],
 };

@@ -69,7 +69,7 @@ in a banner. The whole UI is reviewable this way without a backend.
 ### Tests
 
 ```bash
-node rollup.test.mjs      # 29 assertions — the weight and credit arithmetic
+node rollup.test.mjs      # 30 assertions — the weight and credit arithmetic
 node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
 ```
 
@@ -78,7 +78,7 @@ child under a leaf must leave every credit number unchanged, deleting the last
 child must hand the parent its split back, and a node can never be moved inside
 its own subtree.
 
-`rollup.test.mjs` is 29 assertions over the real seed data: that leaf shares sum
+`rollup.test.mjs` is 30 assertions over the real seed data: that leaf shares sum
 to 1, that allocated credit plus unassigned share sums to 100%, that company
 shares match hand-computed
 values, plus weight edge cases (zero weights, all-equal weights, scaling) and

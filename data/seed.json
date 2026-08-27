@@ -56,220 +56,22 @@
       "legacy_progress": 46
     },
     {
-      "id": "eng",
+      "id": "tech",
       "parent_id": "root",
       "type": "category",
-      "title": "Engineering / Product",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Core product and marketplace work.",
-      "contributions": [],
-      "legacy_progress": 68
-    },
-    {
-      "id": "eng2026",
-      "parent_id": "eng",
-      "type": "category",
-      "title": "2026",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
-      "contributions": []
-    },
-    {
-      "id": "engq1",
-      "parent_id": "eng2026",
-      "type": "branch",
-      "title": "Q1 2026",
+      "title": "Technology",
       "weight": 2,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "mktv0",
-      "parent_id": "engq1",
-      "type": "kpi",
-      "title": "01 Marketplace V0",
-      "weight": 1.5,
-      "status": "done",
-      "target_date": "",
-      "notes": "Original concept: credit against trading, venue selection, portfolio and audit criteria.",
-      "contributions": [
-        {
-          "contributor_id": "pmt0z6mh6",
-          "pct": 75
-        },
-        {
-          "contributor_id": "ethan",
-          "pct": 25
-        }
-      ]
-    },
-    {
-      "id": "mktv05",
-      "parent_id": "engq1",
-      "type": "kpi",
-      "title": "01 Marketplace V0.5",
-      "weight": 0.5,
-      "status": "done",
-      "target_date": "",
-      "notes": "Prototype layered on V0: logic and product refinement handed to the tech team.",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 100
-        }
-      ]
-    },
-    {
-      "id": "engq2",
-      "parent_id": "eng2026",
-      "type": "branch",
-      "title": "Q2 2026",
-      "weight": 1.5,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "market",
-      "parent_id": "engq2",
-      "type": "kpi",
-      "title": "Finish 01 Marketplace V1",
-      "weight": 1.5,
       "status": "in_progress",
       "target_date": "",
-      "notes": "Nam: backend and custody. Ethan: frontend UX and product flow. Backend progress has been slower than planned and is currently blocking parts of frontend integration.",
       "contributions": [],
-      "legacy_progress": 72
-    },
-    {
-      "id": "be",
-      "parent_id": "market",
-      "type": "branch",
-      "title": "Backend",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "backend",
-      "parent_id": "be",
-      "type": "milestone",
-      "title": "Backend finished",
-      "weight": 1,
-      "status": "blocked",
-      "target_date": "",
-      "notes": "",
-      "contributions": [
-        {
-          "contributor_id": "saif",
-          "pct": 100
-        }
-      ]
-    },
-    {
-      "id": "custody",
-      "parent_id": "be",
-      "type": "milestone",
-      "title": "Custody finished",
-      "weight": 1,
-      "status": "done",
-      "target_date": "",
-      "notes": "Ethan came up with custody structure, mapped the architecture and how key system works and gave a timeline from v1,v2,v3. LFG coded and implemented Ethan's ideas.",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 50
-        },
-        {
-          "contributor_id": "saif",
-          "pct": 50
-        }
-      ]
-    },
-    {
-      "id": "fe",
-      "parent_id": "market",
-      "type": "branch",
-      "title": "Frontend",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "frontend",
-      "parent_id": "fe",
-      "type": "milestone",
-      "title": "Frontend UI / UX finished",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Ethan + Nam did majority of frontend work. LFG helped a bit with refinement. Did not ungpt it, so changes are not significant.",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 50
-        },
-        {
-          "contributor_id": "nam",
-          "pct": 50
-        }
-      ]
-    },
-    {
-      "id": "ux",
-      "parent_id": "fe",
-      "type": "milestone",
-      "title": "User experience flow + frontend design",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Ethan designed core user journey",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 100
-        }
-      ]
-    },
-    {
-      "id": "engq3",
-      "parent_id": "eng2026",
-      "type": "branch",
-      "title": "Q3 2026",
-      "weight": 0,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "engq4",
-      "parent_id": "eng2026",
-      "type": "branch",
-      "title": "Q4 2026",
-      "weight": 0,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
+      "notes": "Annual objective for technology — fill in the number it is measured by."
     },
     {
       "id": "risk",
-      "parent_id": "root",
+      "parent_id": "tech",
       "type": "category",
-      "title": "Credit / Risk",
-      "weight": 1,
+      "title": "Credit / Risk Model",
+      "weight": 2,
       "status": "in_progress",
       "target_date": "",
       "notes": "Risk infrastructure and credit model.",
@@ -476,6 +278,215 @@
     {
       "id": "riskq4",
       "parent_id": "risk2026",
+      "type": "branch",
+      "title": "Q4 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "eng",
+      "parent_id": "tech",
+      "type": "category",
+      "title": "Marketplace",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Core product and marketplace work.",
+      "contributions": [],
+      "legacy_progress": 68
+    },
+    {
+      "id": "eng2026",
+      "parent_id": "eng",
+      "type": "category",
+      "title": "2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
+      "contributions": []
+    },
+    {
+      "id": "engq1",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q1 2026",
+      "weight": 2,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "mktv0",
+      "parent_id": "engq1",
+      "type": "kpi",
+      "title": "01 Marketplace V0",
+      "weight": 1.5,
+      "status": "done",
+      "target_date": "",
+      "notes": "Original concept: credit against trading, venue selection, portfolio and audit criteria.",
+      "contributions": [
+        {
+          "contributor_id": "pmt0z6mh6",
+          "pct": 75
+        },
+        {
+          "contributor_id": "ethan",
+          "pct": 25
+        }
+      ]
+    },
+    {
+      "id": "mktv05",
+      "parent_id": "engq1",
+      "type": "kpi",
+      "title": "01 Marketplace V0.5",
+      "weight": 0.5,
+      "status": "done",
+      "target_date": "",
+      "notes": "Prototype layered on V0: logic and product refinement handed to the tech team.",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 100
+        }
+      ]
+    },
+    {
+      "id": "engq2",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q2 2026",
+      "weight": 1.5,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "market",
+      "parent_id": "engq2",
+      "type": "kpi",
+      "title": "Finish 01 Marketplace V1",
+      "weight": 1.5,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Nam: backend and custody. Ethan: frontend UX and product flow. Backend progress has been slower than planned and is currently blocking parts of frontend integration.",
+      "contributions": [],
+      "legacy_progress": 72
+    },
+    {
+      "id": "be",
+      "parent_id": "market",
+      "type": "branch",
+      "title": "Backend",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "backend",
+      "parent_id": "be",
+      "type": "milestone",
+      "title": "Backend finished",
+      "weight": 1,
+      "status": "blocked",
+      "target_date": "",
+      "notes": "",
+      "contributions": [
+        {
+          "contributor_id": "saif",
+          "pct": 100
+        }
+      ]
+    },
+    {
+      "id": "custody",
+      "parent_id": "be",
+      "type": "milestone",
+      "title": "Custody finished",
+      "weight": 1,
+      "status": "done",
+      "target_date": "",
+      "notes": "Ethan came up with custody structure, mapped the architecture and how key system works and gave a timeline from v1,v2,v3. LFG coded and implemented Ethan's ideas.",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 50
+        },
+        {
+          "contributor_id": "saif",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "fe",
+      "parent_id": "market",
+      "type": "branch",
+      "title": "Frontend",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "frontend",
+      "parent_id": "fe",
+      "type": "milestone",
+      "title": "Frontend UI / UX finished",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Ethan + Nam did majority of frontend work. LFG helped a bit with refinement. Did not ungpt it, so changes are not significant.",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 50
+        },
+        {
+          "contributor_id": "nam",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "ux",
+      "parent_id": "fe",
+      "type": "milestone",
+      "title": "User experience flow + frontend design",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Ethan designed core user journey",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 100
+        }
+      ]
+    },
+    {
+      "id": "engq3",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q3 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "engq4",
+      "parent_id": "eng2026",
       "type": "branch",
       "title": "Q4 2026",
       "weight": 0,
