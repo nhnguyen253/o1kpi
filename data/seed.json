@@ -104,28 +104,16 @@
       "id": "riskq2",
       "parent_id": "risk2026",
       "type": "branch",
-      "title": "Q2 2026",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "credit",
-      "parent_id": "riskq2",
-      "type": "kpi",
-      "title": "Finish Credit Model V1",
+      "title": "Q2 2026: Finish Credit Model V1",
       "weight": 1,
       "status": "in_progress",
       "target_date": "",
-      "notes": "Nam leading quantitative work and backtesting. Ethan contributing product/risk framing.",
-      "contributions": [],
-      "legacy_progress": 55
+      "notes": "Ship a credit model that scores trading agents accurately enough that the ones it approves go on to perform once onboarded.",
+      "contributions": []
     },
     {
       "id": "score",
-      "parent_id": "credit",
+      "parent_id": "riskq2",
       "type": "milestone",
       "title": "Agent + risk score",
       "weight": 1,
@@ -141,7 +129,7 @@
     },
     {
       "id": "buffer",
-      "parent_id": "credit",
+      "parent_id": "riskq2",
       "type": "milestone",
       "title": "Buffer sizing",
       "weight": 1,
@@ -157,7 +145,7 @@
     },
     {
       "id": "runway",
-      "parent_id": "credit",
+      "parent_id": "riskq2",
       "type": "milestone",
       "title": "Runway boundary",
       "weight": 1,
@@ -177,7 +165,7 @@
     },
     {
       "id": "limit",
-      "parent_id": "credit",
+      "parent_id": "riskq2",
       "type": "milestone",
       "title": "Credit limit",
       "weight": 1,
@@ -197,7 +185,7 @@
     },
     {
       "id": "strategy",
-      "parent_id": "credit",
+      "parent_id": "riskq2",
       "type": "milestone",
       "title": "Strategy detection",
       "weight": 1,
@@ -217,7 +205,7 @@
     },
     {
       "id": "backtest",
-      "parent_id": "credit",
+      "parent_id": "riskq2",
       "type": "milestone",
       "title": "Backtesting / validation",
       "weight": 1,
@@ -235,27 +223,16 @@
       "id": "riskq3",
       "parent_id": "risk2026",
       "type": "branch",
-      "title": "Q3 2026",
+      "title": "Q3 2026: Finish Credit Model V2",
       "weight": 1,
       "status": "not_started",
       "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "creditv2",
-      "parent_id": "riskq3",
-      "type": "kpi",
-      "title": "Finish Credit Model V2",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
+      "notes": "Extend the model with market context and a watchdog.",
       "contributions": []
     },
     {
       "id": "mktcontext",
-      "parent_id": "creditv2",
+      "parent_id": "riskq3",
       "type": "milestone",
       "title": "Add market context to model",
       "weight": 1,
@@ -266,7 +243,7 @@
     },
     {
       "id": "watchdog",
-      "parent_id": "creditv2",
+      "parent_id": "riskq3",
       "type": "milestone",
       "title": "Watchdog addition",
       "weight": 1,

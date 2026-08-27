@@ -63,8 +63,9 @@ test('company shares match hand-computed values', () => {
   near(companyShare(tree, 'mktv05'), mkt * 0.5 / 3.5, 1e-9, 'mktv05');
   near(companyShare(tree, 'market'), mkt * 1.5 / 3.5, 1e-9, 'market');
   near(companyShare(tree, 'custody'), mkt * 1.5 / 3.5 / 4, 1e-9, 'custody');
-  // The model splits evenly between V1 and V2.
-  near(companyShare(tree, 'credit'), model / 2, 1e-9, 'credit');
+  // The model splits evenly between V1 (Q2) and V2 (Q3).
+  near(companyShare(tree, 'riskq2'), model / 2, 1e-9, 'V1 quarter');
+  near(companyShare(tree, 'riskq3'), model / 2, 1e-9, 'V2 quarter');
   near(companyShare(tree, 'score'), model / 12, 1e-9, 'score');
   // The fold left Partnerships, Capital and Operations untouched.
   near(companyShare(tree, 'venues'), 0.1, 1e-9, 'venues');
@@ -94,14 +95,23 @@ test('the quarter layer shifts nobody\'s share', () => {
     const year = tree.byId.get(`${cat}2026`);
     assert.equal(year.parent_id, cat, `${cat} 2026 node`);
     const quarters = tree.childrenOf.get(year.id);
-    assert.deepEqual(quarters.map((q) => q.title),
-      ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'], `${cat} quarters`);
+    // A quarter that has a goal is titled "Q2 2026: Finish Credit Model V1",
+    // so match the prefix rather than the whole title.
+    quarters.forEach((q, i) => assert.ok(q.title.startsWith(`Q${i + 1} 2026`),
+      `${cat} quarter ${i + 1} is titled "${q.title}"`));
+    assert.equal(quarters.length, 4, `${cat} has four quarters`);
     for (const q of quarters) {
       const kids = tree.childrenOf.get(q.id);
+      // An empty quarter must hold no company share at all.
+      if (!kids.length) { near(companyShare(tree, q.id), 0, 1e-12, `${q.id} empty`); continue; }
+      // The sum rule applies only while a quarter is a pure wrapper. Once it
+      // carries a goal of its own ("Q2 2026: Finish Credit Model V1") it is a
+      // sibling competing on merit, and its weight is a deliberate judgement --
+      // summing its children would let a goal outweigh another just for
+      // listing more milestones.
+      if (q.title.includes(':')) continue;
       const sum = kids.reduce((s, k) => s + Number(k.weight), 0);
       near(Number(q.weight), sum, 1e-9, `${q.id} weight vs children`);
-      // An empty quarter must hold no company share at all.
-      if (!kids.length) near(companyShare(tree, q.id), 0, 1e-12, `${q.id} empty`);
     }
   }
 });
@@ -127,12 +137,21 @@ test('Operations holds a fifth and now carries Legal', () => {
   ]);
   for (const k of kids) near(companyShare(tree, k.id), 0.04, 1e-9, k.id);
 });
-test('Credit Model V1 and V2 sit in the quarters they were worked in', () => {
-  assert.deepEqual(tree.childrenOf.get('riskq2').map((n) => n.title), ['Finish Credit Model V1']);
-  assert.deepEqual(tree.childrenOf.get('riskq3').map((n) => n.title), ['Finish Credit Model V2']);
-  near(companyShare(tree, 'creditv2'), companyShare(tree, 'credit'), 1e-9, 'V1 vs V2');
-  assert.deepEqual(tree.childrenOf.get('creditv2').map((n) => n.title),
+test('the model quarters are the goals themselves', () => {
+  // No intermediate branch node: the quarter IS "Finish Credit Model V1", with
+  // the milestones hanging directly off it.
+  const [q1, q2, q3, q4] = tree.childrenOf.get('risk2026');
+  assert.equal(q2.title, 'Q2 2026: Finish Credit Model V1');
+  assert.equal(q3.title, 'Q3 2026: Finish Credit Model V2');
+  assert.ok(q2.notes.length > 0, 'the Q2 goal carries a description');
+  assert.deepEqual(tree.childrenOf.get(q3.id).map((n) => n.title),
     ['Add market context to model', 'Watchdog addition']);
+  assert.equal(tree.childrenOf.get(q2.id).length, 6, 'six V1 milestones');
+  // V1 and V2 weigh the same despite V1 listing three times as many
+  // milestones -- the goal is weighted, not the length of its checklist.
+  near(companyShare(tree, q2.id), companyShare(tree, q3.id), 1e-9, 'V1 vs V2');
+  // Nothing is planned for Q1 or Q4 yet, so they hold no company share.
+  for (const q of [q1, q4]) near(companyShare(tree, q.id), 0, 1e-12, q.title);
 });
 test('Partnerships is venues and bot builders now that traders left', () => {
   assert.deepEqual(tree.childrenOf.get('partnershipsq3').map((n) => n.title),
@@ -261,7 +280,7 @@ test('contributorMix totals 100 for a fully staffed subtree', () => {
   // Not 'partnerships' any more — its bot builder branch is unstaffed, so its
   // mix falls short on purpose. Only subtrees with a contributor on every leaf
   // belong in this list.
-  for (const id of ['market', 'credit', 'traders', 'venues']) {
+  for (const id of ['market', 'riskq2', 'traders', 'venues']) {
     const total = contributorMix(tree, id).reduce((s, c) => s + c.pct, 0);
     near(total, 100, 1e-6, `${id} mix`);
   }

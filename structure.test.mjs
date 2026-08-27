@@ -94,7 +94,7 @@ t('moving a node keeps the tree valid and totals closed', () => {
 });
 t('moving a node inside its own subtree is rejected', () => {
   const nodes = structuredClone(seed.nodes);
-  nodes.find(n=>n.id==='credit').parent_id = 'score';   // score is credit's child
+  nodes.find(n=>n.id==='riskq2').parent_id = 'score';   // score is riskq2's child
   assert.throws(()=>buildTree(nodes), /unreachable|cycle/i);
 });
 console.log('\nadd then delete round trip');
