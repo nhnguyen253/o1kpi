@@ -49,76 +49,105 @@ test('no node carries a progress field any more', () => {
 });
 
 test('company shares match hand-computed values', () => {
-  // Five systems at weight 1 -> a fifth each, then down the path.
+  // Five systems at weight 1 -> a fifth each. Under each sits a 2026 node and
+  // its quarters; because a quarter's weight is the sum of its children's,
+  // that layer is transparent and shares are what they'd be without it.
   near(companyShare(tree, 'eng'), 0.2, 1e-9, 'eng');
-  near(companyShare(tree, 'market'), 0.2, 1e-9, 'market');      // only child of eng
-  near(companyShare(tree, 'custody'), 0.05, 1e-9, 'custody');   // 1 of market's 4
-  // Credit / Risk splits between V1 and V2, so each holds half of its fifth.
-  near(companyShare(tree, 'risk'), 0.2, 1e-9, 'risk');
+  near(companyShare(tree, 'eng2026'), 0.2, 1e-9, 'eng2026');
+  // Engineering holds V0 (1.5), V0.5 (0.5) and V1 (1.5) -> 3.5 total.
+  near(companyShare(tree, 'mktv0'), 0.2 * 1.5 / 3.5, 1e-9, 'mktv0');
+  near(companyShare(tree, 'mktv05'), 0.2 * 0.5 / 3.5, 1e-9, 'mktv05');
+  near(companyShare(tree, 'market'), 0.2 * 1.5 / 3.5, 1e-9, 'market');
+  // V1 splits backend / frontend, two leaves each.
+  near(companyShare(tree, 'custody'), 0.2 * 1.5 / 3.5 / 4, 1e-9, 'custody');
+  // Credit / Risk splits between V1 and V2.
   near(companyShare(tree, 'credit'), 0.1, 1e-9, 'credit');
-  near(companyShare(tree, 'score'), 0.1 / 6, 1e-9, 'score');    // 1 of V1's 6
-  // Partnerships splits three ways: traders, venues, bot builders.
-  near(companyShare(tree, 'partnerships'), 0.2, 1e-9, 'partnerships');
-  near(companyShare(tree, 'traders'), 0.2 / 3, 1e-9, 'traders');
+  near(companyShare(tree, 'score'), 0.1 / 6, 1e-9, 'score');
+  // Partnerships is venues + bot builders now that traders moved to Capital.
+  near(companyShare(tree, 'venues'), 0.1, 1e-9, 'venues');
+  near(companyShare(tree, 'v3'), 0.1 / 3, 1e-9, 'v3');
+  // Capital is the raise, the lender pool and trader acquisition.
+  near(companyShare(tree, 'raise'), 0.2 / 3, 1e-9, 'raise');
+  near(companyShare(tree, 'r5'), 0.2 / 6, 1e-9, 'r5');
   near(companyShare(tree, 'tr20'), 0.2 / 9, 1e-9, 'tr20');
-  // Capital splits between the raise and the lender pool.
-  near(companyShare(tree, 'capital'), 0.2, 1e-9, 'capital');
-  near(companyShare(tree, 'raise'), 0.1, 1e-9, 'raise');
-  near(companyShare(tree, 'r5'), 0.05, 1e-9, 'r5');
+  // Operations gained Legal, so five even children.
+  near(companyShare(tree, 'bdconvo'), 0.04, 1e-9, 'bdconvo');
 });
 
-test('the lender pool sits beside the raise with three goals', () => {
-  assert.deepEqual(tree.childrenOf.get('capital').map((n) => n.title),
-    ['Capital Raise', 'Lender Pool Capital Acquisition']);
-  near(companyShare(tree, 'lenderpool'), companyShare(tree, 'raise'), 1e-9, 'raise vs pool');
-  assert.deepEqual(tree.childrenOf.get('lenderpool').map((n) => n.title),
-    ['$1M lender pool', '$5M lender pool', '$10M lender pool']);
-  // Three even goals inside a tenth.
-  for (const k of tree.childrenOf.get('lenderpool')) {
-    near(companyShare(tree, k.id), 0.1 / 3, 1e-9, k.id);
+test('the quarter layer shifts nobody\'s share', () => {
+  // The whole point of the 2026 / Qn scaffolding: it groups work by when it
+  // happened without changing what anything is worth. That holds only while
+  // each quarter's weight equals the sum of its children's.
+  for (const cat of ['eng', 'risk', 'partnerships', 'capital', 'ops']) {
+    const year = tree.byId.get(`${cat}2026`);
+    assert.equal(year.parent_id, cat, `${cat} 2026 node`);
+    const quarters = tree.childrenOf.get(year.id);
+    assert.deepEqual(quarters.map((q) => q.title),
+      ['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026'], `${cat} quarters`);
+    for (const q of quarters) {
+      const kids = tree.childrenOf.get(q.id);
+      const sum = kids.reduce((s, k) => s + Number(k.weight), 0);
+      near(Number(q.weight), sum, 1e-9, `${q.id} weight vs children`);
+      // An empty quarter must hold no company share at all.
+      if (!kids.length) near(companyShare(tree, q.id), 0, 1e-12, `${q.id} empty`);
+    }
   }
 });
-
-test('Operations sits alongside the other systems and holds a fifth', () => {
-  const ops = tree.byId.get('ops');
-  assert.equal(ops.parent_id, 'root');
+test('Capital holds the raise, the lender pool and trader acquisition', () => {
+  // Asad's rule from the 2026-08-26 standup: anything touching money lives
+  // under Capital, so trader acquisition moved out of Partnerships.
+  assert.deepEqual(tree.childrenOf.get('capitalq3').map((n) => n.title),
+    ['Capital Raise', 'Lender Pool Capital Acquisition', 'Trader Acquisition']);
+  assert.equal(tree.byId.get('traders').parent_id, 'capitalq3');
+  for (const b of tree.childrenOf.get('capitalq3')) {
+    near(companyShare(tree, b.id), 0.2 / 3, 1e-9, b.id);
+  }
+});
+test('Operations holds a fifth and now carries Legal', () => {
   near(companyShare(tree, 'ops'), 0.2, 1e-9, 'ops');
-  const kids = tree.childrenOf.get('ops');
+  const kids = tree.childrenOf.get('opsq3');
   assert.deepEqual(kids.map((k) => k.title), [
     'BD Conversation Management',
     'KPI Tree Management',
     'Accountability + Follow Through',
     'Internal Organization of 01',
+    'Legal & Compliance',
   ]);
-  // Four even children of a fifth -> 5% of the company each.
-  for (const k of kids) near(companyShare(tree, k.id), 0.05, 1e-9, k.id);
+  for (const k of kids) near(companyShare(tree, k.id), 0.04, 1e-9, k.id);
 });
-
-test('Credit Model V2 sits beside V1 and halves it', () => {
-  const v2 = tree.byId.get('creditv2');
-  assert.equal(v2.parent_id, 'risk');
-  assert.deepEqual(tree.childrenOf.get('risk').map((n) => n.title),
-    ['Finish Credit Model V1', 'Finish Credit Model V2']);
+test('Credit Model V1 and V2 sit in the quarters they were worked in', () => {
+  assert.deepEqual(tree.childrenOf.get('riskq2').map((n) => n.title), ['Finish Credit Model V1']);
+  assert.deepEqual(tree.childrenOf.get('riskq3').map((n) => n.title), ['Finish Credit Model V2']);
   near(companyShare(tree, 'creditv2'), companyShare(tree, 'credit'), 1e-9, 'V1 vs V2');
   assert.deepEqual(tree.childrenOf.get('creditv2').map((n) => n.title),
     ['Add market context to model', 'Watchdog addition']);
-  // Two even children of a tenth -> 5% of the company each.
-  for (const k of tree.childrenOf.get('creditv2')) {
-    near(companyShare(tree, k.id), 0.05, 1e-9, k.id);
+});
+test('Partnerships is venues and bot builders now that traders left', () => {
+  assert.deepEqual(tree.childrenOf.get('partnershipsq3').map((n) => n.title),
+    ['Venue Integrations', 'Bot Builder / Frontend Partnerships']);
+  for (const b of tree.childrenOf.get('partnershipsq3')) {
+    near(companyShare(tree, b.id), 0.1, 1e-9, b.id);
   }
 });
 
-test('bot builder partnerships sit beside traders and venues', () => {
-  assert.deepEqual(tree.childrenOf.get('partnerships').map((n) => n.title),
-    ['Trader Acquisition', 'Venue Integrations', 'Bot Builder / Frontend Partnerships']);
-  // Three even branches inside a fifth.
-  for (const b of tree.childrenOf.get('partnerships')) {
-    near(companyShare(tree, b.id), 0.2 / 3, 1e-9, b.id);
-  }
-  assert.deepEqual(tree.childrenOf.get('botbuilder').map((n) => n.title),
-    ['5 partnerships', '10 partnerships', '15 partnerships']);
+test('custody is a function of the backend, not its peer', () => {
+  // Asad, 2026-08-26: custody is a backend concern; as a sibling it was
+  // carrying weight it had not earned.
+  assert.deepEqual(tree.childrenOf.get('market').map((n) => n.title), ['Backend', 'Frontend']);
+  assert.deepEqual(tree.childrenOf.get('be').map((n) => n.title),
+    ['Backend finished', 'Custody finished']);
+  assert.deepEqual(tree.childrenOf.get('fe').map((n) => n.title),
+    ['Frontend UI / UX finished', 'User experience flow + frontend design']);
 });
 
+test('marketplace V0 and V0.5 precede V1', () => {
+  assert.deepEqual(tree.childrenOf.get('engq1').map((n) => n.title),
+    ['01 Marketplace V0', '01 Marketplace V0.5']);
+  assert.deepEqual(tree.childrenOf.get('engq2').map((n) => n.title), ['Finish 01 Marketplace V1']);
+  // V0 and V1 weigh the same; the V0.5 prototype is a third of either.
+  near(companyShare(tree, 'mktv0'), companyShare(tree, 'market'), 1e-9, 'V0 vs V1');
+  near(companyShare(tree, 'mktv05'), companyShare(tree, 'mktv0') / 3, 1e-9, 'V0.5');
+});
 test('every leaf split totals exactly 100', () => {
   for (const l of leaves(tree)) {
     const { ok, total } = validateSplit(l.contributions);

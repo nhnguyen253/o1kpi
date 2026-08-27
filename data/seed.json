@@ -68,11 +68,80 @@
       "legacy_progress": 68
     },
     {
-      "id": "market",
+      "id": "eng2026",
       "parent_id": "eng",
+      "type": "category",
+      "title": "2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
+      "contributions": []
+    },
+    {
+      "id": "engq1",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q1 2026",
+      "weight": 2,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "mktv0",
+      "parent_id": "engq1",
+      "type": "kpi",
+      "title": "01 Marketplace V0",
+      "weight": 1.5,
+      "status": "done",
+      "target_date": "",
+      "notes": "Original concept: credit against trading, venue selection, portfolio and audit criteria.",
+      "contributions": [
+        {
+          "contributor_id": "pmt0z6mh6",
+          "pct": 75
+        },
+        {
+          "contributor_id": "ethan",
+          "pct": 25
+        }
+      ]
+    },
+    {
+      "id": "mktv05",
+      "parent_id": "engq1",
+      "type": "kpi",
+      "title": "01 Marketplace V0.5",
+      "weight": 0.5,
+      "status": "done",
+      "target_date": "",
+      "notes": "Prototype layered on V0: logic and product refinement handed to the tech team.",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 100
+        }
+      ]
+    },
+    {
+      "id": "engq2",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q2 2026",
+      "weight": 1.5,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "market",
+      "parent_id": "engq2",
       "type": "kpi",
       "title": "Finish 01 Marketplace V1",
-      "weight": 1,
+      "weight": 1.5,
       "status": "in_progress",
       "target_date": "",
       "notes": "Nam: backend and custody. Ethan: frontend UX and product flow. Backend progress has been slower than planned and is currently blocking parts of frontend integration.",
@@ -80,8 +149,35 @@
       "legacy_progress": 72
     },
     {
-      "id": "custody",
+      "id": "be",
       "parent_id": "market",
+      "type": "branch",
+      "title": "Backend",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "backend",
+      "parent_id": "be",
+      "type": "milestone",
+      "title": "Backend finished",
+      "weight": 1,
+      "status": "blocked",
+      "target_date": "",
+      "notes": "",
+      "contributions": [
+        {
+          "contributor_id": "saif",
+          "pct": 100
+        }
+      ]
+    },
+    {
+      "id": "custody",
+      "parent_id": "be",
       "type": "milestone",
       "title": "Custody finished",
       "weight": 1,
@@ -100,24 +196,19 @@
       ]
     },
     {
-      "id": "backend",
+      "id": "fe",
       "parent_id": "market",
-      "type": "milestone",
-      "title": "Backend finished",
+      "type": "branch",
+      "title": "Frontend",
       "weight": 1,
-      "status": "blocked",
+      "status": "not_started",
       "target_date": "",
       "notes": "",
-      "contributions": [
-        {
-          "contributor_id": "saif",
-          "pct": 100
-        }
-      ]
+      "contributions": []
     },
     {
       "id": "frontend",
-      "parent_id": "market",
+      "parent_id": "fe",
       "type": "milestone",
       "title": "Frontend UI / UX finished",
       "weight": 1,
@@ -137,7 +228,7 @@
     },
     {
       "id": "ux",
-      "parent_id": "market",
+      "parent_id": "fe",
       "type": "milestone",
       "title": "User experience flow + frontend design",
       "weight": 1,
@@ -152,6 +243,28 @@
       ]
     },
     {
+      "id": "engq3",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q3 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "engq4",
+      "parent_id": "eng2026",
+      "type": "branch",
+      "title": "Q4 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
       "id": "risk",
       "parent_id": "root",
       "type": "category",
@@ -164,8 +277,41 @@
       "legacy_progress": 55
     },
     {
-      "id": "credit",
+      "id": "risk2026",
       "parent_id": "risk",
+      "type": "category",
+      "title": "2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
+      "contributions": []
+    },
+    {
+      "id": "riskq1",
+      "parent_id": "risk2026",
+      "type": "branch",
+      "title": "Q1 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "riskq2",
+      "parent_id": "risk2026",
+      "type": "branch",
+      "title": "Q2 2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "credit",
+      "parent_id": "riskq2",
       "type": "kpi",
       "title": "Finish Credit Model V1",
       "weight": 1,
@@ -284,8 +430,19 @@
       ]
     },
     {
+      "id": "riskq3",
+      "parent_id": "risk2026",
+      "type": "branch",
+      "title": "Q3 2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
       "id": "creditv2",
-      "parent_id": "risk",
+      "parent_id": "riskq3",
       "type": "kpi",
       "title": "Finish Credit Model V2",
       "weight": 1,
@@ -317,6 +474,17 @@
       "contributions": []
     },
     {
+      "id": "riskq4",
+      "parent_id": "risk2026",
+      "type": "branch",
+      "title": "Q4 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
       "id": "partnerships",
       "parent_id": "root",
       "type": "category",
@@ -329,8 +497,331 @@
       "legacy_progress": 38
     },
     {
-      "id": "traders",
+      "id": "partnerships2026",
       "parent_id": "partnerships",
+      "type": "category",
+      "title": "2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
+      "contributions": []
+    },
+    {
+      "id": "partnershipsq1",
+      "parent_id": "partnerships2026",
+      "type": "branch",
+      "title": "Q1 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "partnershipsq2",
+      "parent_id": "partnerships2026",
+      "type": "branch",
+      "title": "Q2 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "partnershipsq3",
+      "parent_id": "partnerships2026",
+      "type": "branch",
+      "title": "Q3 2026",
+      "weight": 2,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "venues",
+      "parent_id": "partnershipsq3",
+      "type": "branch",
+      "title": "Venue Integrations",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Ethan handling strategic intros. Isaiah and Saif driving outreach and follow-up.",
+      "contributions": [],
+      "legacy_progress": 22
+    },
+    {
+      "id": "v3",
+      "parent_id": "venues",
+      "type": "milestone",
+      "title": "3 venues integrated",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "LFG made intro to decibel and aster. ethan and isaiah did the majority closing of the deal outside of the intro",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 34
+        },
+        {
+          "contributor_id": "isaiah",
+          "pct": 33
+        },
+        {
+          "contributor_id": "saif",
+          "pct": 33
+        }
+      ]
+    },
+    {
+      "id": "v6",
+      "parent_id": "venues",
+      "type": "milestone",
+      "title": "6 venues integrated",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Second integration milestone.",
+      "contributions": [
+        {
+          "contributor_id": "isaiah",
+          "pct": 50
+        },
+        {
+          "contributor_id": "saif",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "v9",
+      "parent_id": "venues",
+      "type": "milestone",
+      "title": "9 venues integrated",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Third integration milestone.",
+      "contributions": [
+        {
+          "contributor_id": "isaiah",
+          "pct": 50
+        },
+        {
+          "contributor_id": "saif",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "botbuilder",
+      "parent_id": "partnershipsq3",
+      "type": "branch",
+      "title": "Bot Builder / Frontend Partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bb5",
+      "parent_id": "botbuilder",
+      "type": "milestone",
+      "title": "5 partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bb10",
+      "parent_id": "botbuilder",
+      "type": "milestone",
+      "title": "10 partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bb15",
+      "parent_id": "botbuilder",
+      "type": "milestone",
+      "title": "15 partnerships",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "partnershipsq4",
+      "parent_id": "partnerships2026",
+      "type": "branch",
+      "title": "Q4 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "capital",
+      "parent_id": "root",
+      "type": "category",
+      "title": "Capital",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Fundraising and capital formation.",
+      "contributions": [],
+      "legacy_progress": 30
+    },
+    {
+      "id": "capital2026",
+      "parent_id": "capital",
+      "type": "category",
+      "title": "2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
+      "contributions": []
+    },
+    {
+      "id": "capitalq1",
+      "parent_id": "capital2026",
+      "type": "branch",
+      "title": "Q1 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "capitalq2",
+      "parent_id": "capital2026",
+      "type": "branch",
+      "title": "Q2 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "capitalq3",
+      "parent_id": "capital2026",
+      "type": "branch",
+      "title": "Q3 2026",
+      "weight": 3,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "raise",
+      "parent_id": "capitalq3",
+      "type": "branch",
+      "title": "Capital Raise",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Fundraising process and investor relationships.",
+      "contributions": [],
+      "legacy_progress": 30
+    },
+    {
+      "id": "r25",
+      "parent_id": "raise",
+      "type": "milestone",
+      "title": "$2.5M raised",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Asad built the fund, LFG specifically francis helped",
+      "contributions": [
+        {
+          "contributor_id": "saif",
+          "pct": 50
+        },
+        {
+          "contributor_id": "pmt0z6mh6",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "r5",
+      "parent_id": "raise",
+      "type": "milestone",
+      "title": "$5M raised",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Full round target.",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 100
+        }
+      ]
+    },
+    {
+      "id": "lenderpool",
+      "parent_id": "capitalq3",
+      "type": "branch",
+      "title": "Lender Pool Capital Acquisition",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Capital raised into the lender pool.",
+      "contributions": []
+    },
+    {
+      "id": "lp1",
+      "parent_id": "lenderpool",
+      "type": "milestone",
+      "title": "$1M lender pool",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "lp5",
+      "parent_id": "lenderpool",
+      "type": "milestone",
+      "title": "$5M lender pool",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "lp10",
+      "parent_id": "lenderpool",
+      "type": "milestone",
+      "title": "$10M lender pool",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "traders",
+      "parent_id": "capitalq3",
       "type": "branch",
       "title": "Trader Acquisition",
       "weight": 1,
@@ -409,224 +900,11 @@
       ]
     },
     {
-      "id": "venues",
-      "parent_id": "partnerships",
+      "id": "capitalq4",
+      "parent_id": "capital2026",
       "type": "branch",
-      "title": "Venue Integrations",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Ethan handling strategic intros. Isaiah and Saif driving outreach and follow-up.",
-      "contributions": [],
-      "legacy_progress": 22
-    },
-    {
-      "id": "v3",
-      "parent_id": "venues",
-      "type": "milestone",
-      "title": "3 venues integrated",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "LFG made intro to decibel and aster. ethan and isaiah did the majority closing of the deal outside of the intro",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 34
-        },
-        {
-          "contributor_id": "isaiah",
-          "pct": 33
-        },
-        {
-          "contributor_id": "saif",
-          "pct": 33
-        }
-      ]
-    },
-    {
-      "id": "v6",
-      "parent_id": "venues",
-      "type": "milestone",
-      "title": "6 venues integrated",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "Second integration milestone.",
-      "contributions": [
-        {
-          "contributor_id": "isaiah",
-          "pct": 50
-        },
-        {
-          "contributor_id": "saif",
-          "pct": 50
-        }
-      ]
-    },
-    {
-      "id": "v9",
-      "parent_id": "venues",
-      "type": "milestone",
-      "title": "9 venues integrated",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "Third integration milestone.",
-      "contributions": [
-        {
-          "contributor_id": "isaiah",
-          "pct": 50
-        },
-        {
-          "contributor_id": "saif",
-          "pct": 50
-        }
-      ]
-    },
-    {
-      "id": "botbuilder",
-      "parent_id": "partnerships",
-      "type": "branch",
-      "title": "Bot Builder / Frontend Partnerships",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "bb5",
-      "parent_id": "botbuilder",
-      "type": "milestone",
-      "title": "5 partnerships",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "bb10",
-      "parent_id": "botbuilder",
-      "type": "milestone",
-      "title": "10 partnerships",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "bb15",
-      "parent_id": "botbuilder",
-      "type": "milestone",
-      "title": "15 partnerships",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "capital",
-      "parent_id": "root",
-      "type": "category",
-      "title": "Capital",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Fundraising and capital formation.",
-      "contributions": [],
-      "legacy_progress": 30
-    },
-    {
-      "id": "raise",
-      "parent_id": "capital",
-      "type": "branch",
-      "title": "Capital Raise",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Fundraising process and investor relationships.",
-      "contributions": [],
-      "legacy_progress": 30
-    },
-    {
-      "id": "r25",
-      "parent_id": "raise",
-      "type": "milestone",
-      "title": "$2.5M raised",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Asad built the fund, LFG specifically francis helped",
-      "contributions": [
-        {
-          "contributor_id": "saif",
-          "pct": 50
-        },
-        {
-          "contributor_id": "pmt0z6mh6",
-          "pct": 50
-        }
-      ]
-    },
-    {
-      "id": "r5",
-      "parent_id": "raise",
-      "type": "milestone",
-      "title": "$5M raised",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "Full round target.",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 100
-        }
-      ]
-    },
-    {
-      "id": "lenderpool",
-      "parent_id": "capital",
-      "type": "branch",
-      "title": "Lender Pool Capital Acquisition",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "Capital raised into the lender pool.",
-      "contributions": []
-    },
-    {
-      "id": "lp1",
-      "parent_id": "lenderpool",
-      "type": "milestone",
-      "title": "$1M lender pool",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "lp5",
-      "parent_id": "lenderpool",
-      "type": "milestone",
-      "title": "$5M lender pool",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "lp10",
-      "parent_id": "lenderpool",
-      "type": "milestone",
-      "title": "$10M lender pool",
-      "weight": 1,
+      "title": "Q4 2026",
+      "weight": 0,
       "status": "not_started",
       "target_date": "",
       "notes": "",
@@ -644,8 +922,52 @@
       "contributions": []
     },
     {
-      "id": "bdconvo",
+      "id": "ops2026",
       "parent_id": "ops",
+      "type": "category",
+      "title": "2026",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Annual objective for this branch -- fill in the number it is measured by.",
+      "contributions": []
+    },
+    {
+      "id": "opsq1",
+      "parent_id": "ops2026",
+      "type": "branch",
+      "title": "Q1 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "opsq2",
+      "parent_id": "ops2026",
+      "type": "branch",
+      "title": "Q2 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "opsq3",
+      "parent_id": "ops2026",
+      "type": "branch",
+      "title": "Q3 2026",
+      "weight": 5,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
+      "contributions": []
+    },
+    {
+      "id": "bdconvo",
+      "parent_id": "opsq3",
       "type": "kpi",
       "title": "BD Conversation Management",
       "weight": 1,
@@ -656,7 +978,7 @@
     },
     {
       "id": "kpimgmt",
-      "parent_id": "ops",
+      "parent_id": "opsq3",
       "type": "kpi",
       "title": "KPI Tree Management",
       "weight": 1,
@@ -667,7 +989,7 @@
     },
     {
       "id": "followthru",
-      "parent_id": "ops",
+      "parent_id": "opsq3",
       "type": "kpi",
       "title": "Accountability + Follow Through",
       "weight": 1,
@@ -678,13 +1000,35 @@
     },
     {
       "id": "internalorg",
-      "parent_id": "ops",
+      "parent_id": "opsq3",
       "type": "kpi",
       "title": "Internal Organization of 01",
       "weight": 1,
       "status": "not_started",
       "target_date": "",
       "notes": "Company docs, CRMs, and internal tooling.",
+      "contributions": []
+    },
+    {
+      "id": "legal",
+      "parent_id": "opsq3",
+      "type": "kpi",
+      "title": "Legal & Compliance",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Regulatory and compliance workstream. Raised as a gap on 2026-08-26.",
+      "contributions": []
+    },
+    {
+      "id": "opsq4",
+      "parent_id": "ops2026",
+      "type": "branch",
+      "title": "Q4 2026",
+      "weight": 0,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "",
       "contributions": []
     }
   ],

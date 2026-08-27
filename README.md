@@ -30,6 +30,14 @@ It sums to 100% across everyone, less whatever sits on leaves nobody is assigned
 to — that shortfall shows as an "Unassigned" row rather than being quietly
 redistributed.
 
+### Time structure
+
+Every branch carries a **2026** node holding **Q1–Q4**, and the work hangs off
+the quarter it belongs to. A quarter's weight is the **sum of its children's
+weights**, which makes that layer weight-transparent: grouping work by quarter
+does not change what any node is worth. Empty future quarters therefore sit at
+weight 0 and hold no company share until something is put in them.
+
 ### There is no progress percentage
 
 This tree answers two questions and no others: **how much does each node matter**
@@ -61,7 +69,7 @@ in a banner. The whole UI is reviewable this way without a backend.
 ### Tests
 
 ```bash
-node rollup.test.mjs      # 26 assertions — the weight and credit arithmetic
+node rollup.test.mjs      # 29 assertions — the weight and credit arithmetic
 node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
 ```
 
@@ -70,7 +78,7 @@ child under a leaf must leave every credit number unchanged, deleting the last
 child must hand the parent its split back, and a node can never be moved inside
 its own subtree.
 
-`rollup.test.mjs` is 26 assertions over the real seed data: that leaf shares sum
+`rollup.test.mjs` is 29 assertions over the real seed data: that leaf shares sum
 to 1, that allocated credit plus unassigned share sums to 100%, that company
 shares match hand-computed
 values, plus weight edge cases (zero weights, all-equal weights, scaling) and
@@ -159,6 +167,7 @@ redistributed.
 | `open-editing.sql` | Intermediate step: signed-in users, no allowlist. |
 | `data/seed.json` | First-run seed and offline fallback. |
 | `migrate.mjs` | One-shot v1→v2 schema conversion. Already run; kept for reference. |
+| `restructure.mjs` | One-shot 2026 restructure: quarters plus the Aug 26 subdivisions. Already run; kept for reference. |
 | `structure.test.mjs` | Tests for add / move / delete node. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
 
