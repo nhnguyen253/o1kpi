@@ -337,28 +337,16 @@
       "id": "engq2",
       "parent_id": "eng2026",
       "type": "branch",
-      "title": "Q2 2026",
-      "weight": 1.5,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "",
-      "contributions": []
-    },
-    {
-      "id": "market",
-      "parent_id": "engq2",
-      "type": "kpi",
-      "title": "Finish 01 Marketplace V1",
+      "title": "Q2 2026: Finish 01 Marketplace V1",
       "weight": 1.5,
       "status": "in_progress",
       "target_date": "",
       "notes": "Nam: backend and custody. Ethan: frontend UX and product flow. Backend progress has been slower than planned and is currently blocking parts of frontend integration.",
-      "contributions": [],
-      "legacy_progress": 72
+      "contributions": []
     },
     {
       "id": "be",
-      "parent_id": "market",
+      "parent_id": "engq2",
       "type": "branch",
       "title": "Backend",
       "weight": 1,
@@ -405,7 +393,7 @@
     },
     {
       "id": "fe",
-      "parent_id": "market",
+      "parent_id": "engq2",
       "type": "branch",
       "title": "Frontend",
       "weight": 1,

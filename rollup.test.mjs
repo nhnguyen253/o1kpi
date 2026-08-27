@@ -61,7 +61,7 @@ test('company shares match hand-computed values', () => {
   // Marketplace holds V0 (1.5), V0.5 (0.5) and V1 (1.5) -> 3.5 total.
   near(companyShare(tree, 'mktv0'), mkt * 1.5 / 3.5, 1e-9, 'mktv0');
   near(companyShare(tree, 'mktv05'), mkt * 0.5 / 3.5, 1e-9, 'mktv05');
-  near(companyShare(tree, 'market'), mkt * 1.5 / 3.5, 1e-9, 'market');
+  near(companyShare(tree, 'engq2'), mkt * 1.5 / 3.5, 1e-9, 'engq2');
   near(companyShare(tree, 'custody'), mkt * 1.5 / 3.5 / 4, 1e-9, 'custody');
   // The model splits evenly between V1 (Q2) and V2 (Q3).
   near(companyShare(tree, 'riskq2'), model / 2, 1e-9, 'V1 quarter');
@@ -97,7 +97,9 @@ test('the quarter layer shifts nobody\'s share', () => {
     const quarters = tree.childrenOf.get(year.id);
     // A quarter that has a goal is titled "Q2 2026: Finish Credit Model V1",
     // so match the prefix rather than the whole title.
-    quarters.forEach((q, i) => assert.ok(q.title.startsWith(`Q${i + 1} 2026`),
+    // Titles are either "Q2 2026" or "Q2 2026: <goal>" or "Q2: <goal>" -- the
+    // year is optional once the 2026 node above already says it.
+    quarters.forEach((q, i) => assert.ok(q.title.startsWith(`Q${i + 1}`),
       `${cat} quarter ${i + 1} is titled "${q.title}"`));
     assert.equal(quarters.length, 4, `${cat} has four quarters`);
     for (const q of quarters) {
@@ -164,7 +166,7 @@ test('Partnerships is venues and bot builders now that traders left', () => {
 test('custody is a function of the backend, not its peer', () => {
   // Asad, 2026-08-26: custody is a backend concern; as a sibling it was
   // carrying weight it had not earned.
-  assert.deepEqual(tree.childrenOf.get('market').map((n) => n.title), ['Backend', 'Frontend']);
+  assert.deepEqual(tree.childrenOf.get('engq2').map((n) => n.title), ['Backend', 'Frontend']);
   assert.deepEqual(tree.childrenOf.get('be').map((n) => n.title),
     ['Backend finished', 'Custody finished']);
   assert.deepEqual(tree.childrenOf.get('fe').map((n) => n.title),
@@ -174,9 +176,11 @@ test('custody is a function of the backend, not its peer', () => {
 test('marketplace V0 and V0.5 precede V1', () => {
   assert.deepEqual(tree.childrenOf.get('engq1').map((n) => n.title),
     ['01 Marketplace V0', '01 Marketplace V0.5']);
-  assert.deepEqual(tree.childrenOf.get('engq2').map((n) => n.title), ['Finish 01 Marketplace V1']);
+  // The Q2 quarter is the V1 goal itself, so the milestones hang off it.
+  assert.equal(tree.byId.get('engq2').title, 'Q2 2026: Finish 01 Marketplace V1');
+  assert.deepEqual(tree.childrenOf.get('engq2').map((n) => n.title), ['Backend', 'Frontend']);
   // V0 and V1 weigh the same; the V0.5 prototype is a third of either.
-  near(companyShare(tree, 'mktv0'), companyShare(tree, 'market'), 1e-9, 'V0 vs V1');
+  near(companyShare(tree, 'mktv0'), companyShare(tree, 'engq2'), 1e-9, 'V0 vs V1');
   near(companyShare(tree, 'mktv05'), companyShare(tree, 'mktv0') / 3, 1e-9, 'V0.5');
 });
 test('every leaf split totals exactly 100', () => {
@@ -206,7 +210,7 @@ test('weighting a node up takes share from its siblings', () => {
   assert.ok(companyShare(after, 'custody') > baseCustody, 'custody should gain');
   assert.ok(companyShare(after, 'backend') < baseBackend, 'its siblings should give it up');
   // The parent is unchanged: reweighting inside market never leaks upward.
-  near(companyShare(after, 'market'), companyShare(before, 'market'), 1e-9, 'market');
+  near(companyShare(after, 'engq2'), companyShare(before, 'engq2'), 1e-9, 'engq2');
   near(leaves(after).reduce((s, l) => s + companyShare(after, l.id), 0), 1, 1e-9, 'shares');
 });
 
@@ -269,10 +273,10 @@ test('a not-started leaf still carries its full allocated credit', () => {
 test('contributorMix is share-weighted, not a raw count', () => {
   const nodes = structuredClone(seed.nodes);
   const t0 = buildTree(nodes);
-  const before = contributorMix(t0, 'market').find((c) => c.contributor_id === 'ethan').pct;
+  const before = contributorMix(t0, 'engq2').find((c) => c.contributor_id === 'ethan').pct;
   // ux is ethan-only; making it dominate market must raise ethan's mix.
   nodes.find((n) => n.id === 'ux').weight = 20;
-  const after = contributorMix(buildTree(nodes), 'market').find((c) => c.contributor_id === 'ethan').pct;
+  const after = contributorMix(buildTree(nodes), 'engq2').find((c) => c.contributor_id === 'ethan').pct;
   assert.ok(after > before, `expected rise from ${before}, got ${after}`);
 });
 
@@ -280,7 +284,7 @@ test('contributorMix totals 100 for a fully staffed subtree', () => {
   // Not 'partnerships' any more — its bot builder branch is unstaffed, so its
   // mix falls short on purpose. Only subtrees with a contributor on every leaf
   // belong in this list.
-  for (const id of ['market', 'riskq2', 'traders', 'venues']) {
+  for (const id of ['engq2', 'riskq2', 'traders', 'venues']) {
     const total = contributorMix(tree, id).reduce((s, c) => s + c.pct, 0);
     near(total, 100, 1e-6, `${id} mix`);
   }
@@ -325,7 +329,7 @@ test('validateSplit rejects totals off 100', () => {
 console.log('\nstatus + structure');
 
 test('rolledStatus surfaces a blocked descendant', () => {
-  assert.equal(rolledStatus(tree, 'market'), 'blocked', 'backend is blocked');
+  assert.equal(rolledStatus(tree, 'engq2'), 'blocked', 'backend is blocked');
   assert.equal(rolledStatus(tree, 'root'), 'blocked');
 });
 
@@ -337,7 +341,7 @@ test('rolledStatus reports done only when every leaf is done', () => {
 
 test('buildTree rejects a cycle', () => {
   const nodes = structuredClone(seed.nodes);
-  nodes.find((n) => n.id === 'eng').parent_id = 'market';
+  nodes.find((n) => n.id === 'eng').parent_id = 'engq2';
   assert.throws(() => buildTree(nodes), /unreachable|cycle/i);
 });
 
