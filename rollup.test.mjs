@@ -69,8 +69,8 @@ test('company shares match hand-computed values', () => {
   near(companyShare(tree, 'riskq3'), model / 2, 1e-9, 'V2 quarter');
   near(companyShare(tree, 'score'), model / 12, 1e-9, 'score');
   // The fold left Partnerships, Capital and Operations untouched.
-  near(companyShare(tree, 'venues'), 0.1, 1e-9, 'venues');
-  near(companyShare(tree, 'raise'), 0.2 / 3, 1e-9, 'raise');
+  near(companyShare(tree, 'venues'), 0.2 / 3, 1e-9, 'venues');
+  near(companyShare(tree, 'raise'), 0.1, 1e-9, 'raise');
   near(companyShare(tree, 'tr20'), 0.2 / 9, 1e-9, 'tr20');
   near(companyShare(tree, 'bdconvo'), 0.04, 1e-9, 'bdconvo');
 });
@@ -118,14 +118,11 @@ test('the quarter layer shifts nobody\'s share', () => {
     }
   }
 });
-test('Capital holds the raise, the lender pool and trader acquisition', () => {
-  // Asad's rule from the 2026-08-26 standup: anything touching money lives
-  // under Capital, so trader acquisition moved out of Partnerships.
+test('Capital is the raise and the lender pool', () => {
   assert.deepEqual(tree.childrenOf.get('capitalq3').map((n) => n.title),
-    ['Capital Raise', 'Lender Pool Capital Acquisition', 'Trader Acquisition']);
-  assert.equal(tree.byId.get('traders').parent_id, 'capitalq3');
+    ['Capital Raise', 'Lender Pool Capital Acquisition']);
   for (const b of tree.childrenOf.get('capitalq3')) {
-    near(companyShare(tree, b.id), 0.2 / 3, 1e-9, b.id);
+    near(companyShare(tree, b.id), 0.1, 1e-9, b.id);
   }
 });
 test('Operations holds a fifth and now carries Legal', () => {
@@ -156,11 +153,14 @@ test('the model quarters are the goals themselves', () => {
   // Nothing is planned for Q1 or Q4 yet, so they hold no company share.
   for (const q of [q1, q4]) near(companyShare(tree, q.id), 0, 1e-12, q.title);
 });
-test('Partnerships is venues and bot builders now that traders left', () => {
+test('trader acquisition sits with the rest of business development', () => {
+  // Reversed from Asad's "anything touching money is Capital" rule: acquiring
+  // traders is business development, whatever they then do with money.
+  assert.equal(tree.byId.get('traders').parent_id, 'partnershipsq3');
   assert.deepEqual(tree.childrenOf.get('partnershipsq3').map((n) => n.title),
-    ['Venue Integrations', 'Bot Builder / Frontend Partnerships']);
+    ['Venue Integrations', 'Bot Builder / Frontend Partnerships', 'Trader Acquisition']);
   for (const b of tree.childrenOf.get('partnershipsq3')) {
-    near(companyShare(tree, b.id), 0.1, 1e-9, b.id);
+    near(companyShare(tree, b.id), 0.2 / 3, 1e-9, b.id);
   }
 });
 

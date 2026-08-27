@@ -546,7 +546,7 @@
       "parent_id": "partnerships2026",
       "type": "branch",
       "title": "Q3 2026",
-      "weight": 2,
+      "weight": 3,
       "status": "not_started",
       "target_date": "",
       "notes": "",
@@ -673,6 +673,86 @@
       "contributions": []
     },
     {
+      "id": "traders",
+      "parent_id": "partnershipsq3",
+      "type": "branch",
+      "title": "Trader Acquisition",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "Saif doing direct outreach. Isaiah helping pipeline. Ethan handling high-value relationships.",
+      "contributions": [],
+      "legacy_progress": 45
+    },
+    {
+      "id": "tr5",
+      "parent_id": "traders",
+      "type": "milestone",
+      "title": "5 committed traders",
+      "weight": 1,
+      "status": "done",
+      "target_date": "",
+      "notes": "Asad sourced 2 traders. Ethan sourced 1. Isaiah did outreach to find another trader. Ethan and Isaiah worked to close 3/5. Asad sourced and closed 2/5",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 34
+        },
+        {
+          "contributor_id": "isaiah",
+          "pct": 33
+        },
+        {
+          "contributor_id": "pmt0z6mh6",
+          "pct": 33
+        }
+      ]
+    },
+    {
+      "id": "tr10",
+      "parent_id": "traders",
+      "type": "milestone",
+      "title": "10 committed traders",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 34
+        },
+        {
+          "contributor_id": "isaiah",
+          "pct": 33
+        },
+        {
+          "contributor_id": "pmt0z6mh6",
+          "pct": 33
+        }
+      ]
+    },
+    {
+      "id": "tr20",
+      "parent_id": "traders",
+      "type": "milestone",
+      "title": "20 committed traders",
+      "weight": 1,
+      "status": "not_started",
+      "target_date": "",
+      "notes": "Future trader acquisition milestone.",
+      "contributions": [
+        {
+          "contributor_id": "saif",
+          "pct": 50
+        },
+        {
+          "contributor_id": "isaiah",
+          "pct": 50
+        }
+      ]
+    },
+    {
       "id": "partnershipsq4",
       "parent_id": "partnerships2026",
       "type": "branch",
@@ -733,7 +813,7 @@
       "parent_id": "capital2026",
       "type": "branch",
       "title": "Q3 2026",
-      "weight": 3,
+      "weight": 2,
       "status": "not_started",
       "target_date": "",
       "notes": "",
@@ -830,86 +910,6 @@
       "target_date": "",
       "notes": "",
       "contributions": []
-    },
-    {
-      "id": "traders",
-      "parent_id": "capitalq3",
-      "type": "branch",
-      "title": "Trader Acquisition",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "Saif doing direct outreach. Isaiah helping pipeline. Ethan handling high-value relationships.",
-      "contributions": [],
-      "legacy_progress": 45
-    },
-    {
-      "id": "tr5",
-      "parent_id": "traders",
-      "type": "milestone",
-      "title": "5 committed traders",
-      "weight": 1,
-      "status": "done",
-      "target_date": "",
-      "notes": "Asad sourced 2 traders. Ethan sourced 1. Isaiah did outreach to find another trader. Ethan and Isaiah worked to close 3/5. Asad sourced and closed 2/5",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 34
-        },
-        {
-          "contributor_id": "isaiah",
-          "pct": 33
-        },
-        {
-          "contributor_id": "pmt0z6mh6",
-          "pct": 33
-        }
-      ]
-    },
-    {
-      "id": "tr10",
-      "parent_id": "traders",
-      "type": "milestone",
-      "title": "10 committed traders",
-      "weight": 1,
-      "status": "in_progress",
-      "target_date": "",
-      "notes": "",
-      "contributions": [
-        {
-          "contributor_id": "ethan",
-          "pct": 34
-        },
-        {
-          "contributor_id": "isaiah",
-          "pct": 33
-        },
-        {
-          "contributor_id": "pmt0z6mh6",
-          "pct": 33
-        }
-      ]
-    },
-    {
-      "id": "tr20",
-      "parent_id": "traders",
-      "type": "milestone",
-      "title": "20 committed traders",
-      "weight": 1,
-      "status": "not_started",
-      "target_date": "",
-      "notes": "Future trader acquisition milestone.",
-      "contributions": [
-        {
-          "contributor_id": "saif",
-          "pct": 50
-        },
-        {
-          "contributor_id": "isaiah",
-          "pct": 50
-        }
-      ]
     },
     {
       "id": "capitalq4",
