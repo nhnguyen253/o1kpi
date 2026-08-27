@@ -62,7 +62,8 @@ test('company shares match hand-computed values', () => {
   near(companyShare(tree, 'mktv0'), mkt * 1.5 / 3.5, 1e-9, 'mktv0');
   near(companyShare(tree, 'mktv05'), mkt * 0.5 / 3.5, 1e-9, 'mktv05');
   near(companyShare(tree, 'engq2'), mkt * 1.5 / 3.5, 1e-9, 'engq2');
-  near(companyShare(tree, 'custody'), mkt * 1.5 / 3.5 / 4, 1e-9, 'custody');
+  // engq2 -> Backend (4 children) and Frontend (2).
+  near(companyShare(tree, 'custody'), mkt * 1.5 / 3.5 / 2 / 4, 1e-9, 'custody');
   // The model splits evenly between V1 (Q2) and V2 (Q3).
   near(companyShare(tree, 'riskq2'), model / 2, 1e-9, 'V1 quarter');
   near(companyShare(tree, 'riskq3'), model / 2, 1e-9, 'V2 quarter');
@@ -168,7 +169,7 @@ test('custody is a function of the backend, not its peer', () => {
   // carrying weight it had not earned.
   assert.deepEqual(tree.childrenOf.get('engq2').map((n) => n.title), ['Backend', 'Frontend']);
   assert.deepEqual(tree.childrenOf.get('be').map((n) => n.title),
-    ['Backend finished', 'Custody finished']);
+    ['Backend finished', 'Custody finished', 'API / SDK work', 'Pool economics']);
   assert.deepEqual(tree.childrenOf.get('fe').map((n) => n.title),
     ['Frontend UI / UX finished', 'User experience flow + frontend design']);
 });

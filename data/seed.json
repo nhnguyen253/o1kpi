@@ -392,6 +392,42 @@
       ]
     },
     {
+      "id": "apisdk",
+      "parent_id": "be",
+      "type": "milestone",
+      "title": "API / SDK work",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 50
+        },
+        {
+          "contributor_id": "saif",
+          "pct": 50
+        }
+      ]
+    },
+    {
+      "id": "poolecon",
+      "parent_id": "be",
+      "type": "milestone",
+      "title": "Pool economics",
+      "weight": 1,
+      "status": "in_progress",
+      "target_date": "",
+      "notes": "",
+      "contributions": [
+        {
+          "contributor_id": "ethan",
+          "pct": 100
+        }
+      ]
+    },
+    {
       "id": "fe",
       "parent_id": "engq2",
       "type": "branch",
