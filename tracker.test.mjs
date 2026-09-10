@@ -12,6 +12,7 @@ import {
   overdueByOwner, mentionedContributors, blockedByDependency,
   weeklyRollup, weeklyByOwner, validateTracker, STATUSES,
 } from './tracker.js';
+import { recategorise } from './tracker-recategorise.mjs';
 
 let passed = 0;
 const test = (name, fn) => {
@@ -242,8 +243,10 @@ test('the seed is valid and every owner is a real contributor', () => {
 
 test('the seed has the categories, projects and tasks that were specified', () => {
   const tr = seed.tracker;
-  assert.deepEqual(tr.categories.map((c) => c.title),
-    ['Credit model', 'Fundraise', 'Trader acquisition', 'Partnerships', 'Company']);
+  assert.deepEqual(tr.categories.map((c) => c.title), [
+    'Credit Model', 'Marketplace', 'Pool Investors', 'VC Investors', 'Trader Acquisition',
+    'Bot Building Partnerships', 'Frontend Terminals', 'Venue Partnerships', 'Company',
+  ]);
   assert.equal(tr.projects.length, 9);
   assert.equal(tr.tasks.length, 15);
   const owned = (id) => filterTasks(tr, { owner: id }).length;
@@ -265,9 +268,37 @@ test('the seed invents nothing: no dates, no statuses, no sources', () => {
   }
 });
 
-test('every category links to a real KPI node', () => {
-  const ids = new Set(seed.nodes.map((x) => x.id));
-  for (const c of seed.tracker.categories) assert.ok(ids.has(c.kpi_node_id), `${c.title} -> ${c.kpi_node_id}`);
+test('no category links into the KPI tree — they are different things', () => {
+  for (const c of seed.tracker.categories) assert.equal(c.kpi_node_id, '', `${c.title} still links to ${c.kpi_node_id}`);
+});
+
+console.log('\nrecategorise');
+
+test('recategorising leaves every project and task exactly as it was', () => {
+  const before = structuredClone(seed.tracker);
+  before.categories = [{ id: 'tc_credit', title: 'Credit model', kpi_node_id: 'risk' },
+    { id: 'tc_company', title: 'Company', kpi_node_id: 'ops' }];
+  before.projects = before.projects.filter((p) => ['tc_credit', 'tc_company'].includes(p.category_id));
+  before.tasks = before.tasks.filter((t) => before.projects.some((p) => p.id === t.project_id));
+  before.tasks[0].status = 'in_progress';      // work the team did since the seed
+  const after = recategorise(structuredClone(before));
+  assert.deepEqual(after.projects, before.projects);
+  assert.deepEqual(after.tasks, before.tasks);
+  assert.deepEqual(validateTracker(after), []);
+});
+
+test('recategorising reuses a same-named category, keeps extras last, and is idempotent', () => {
+  const tr = { projects: [], tasks: [], categories: [
+    { id: 'custom', title: 'Legal', kpi_node_id: '' },
+    { id: 'byhand', title: 'marketplace', kpi_node_id: 'eng' },
+  ] };
+  const once = recategorise(tr);
+  assert.equal(once.categories.filter((c) => c.title === 'Marketplace').length, 1, 'no duplicate');
+  assert.equal(once.categories.find((c) => c.title === 'Marketplace').id, 'byhand', 'the existing one is reused');
+  assert.equal(once.categories.at(-1).title, 'Legal', 'categories not on the list stay, at the end');
+  assert.ok(once.categories.every((c) => c.kpi_node_id === ''));
+  const twice = recategorise(structuredClone(once));
+  assert.deepEqual(twice, once);
 });
 
 test('the status list matches the KPI tree\'s', () => {

@@ -71,7 +71,7 @@ in a banner. The whole UI is reviewable this way without a backend.
 ```bash
 node rollup.test.mjs      # 30 assertions — the weight and credit arithmetic
 node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
-node tracker.test.mjs     # 23 assertions — the accountability tracker
+node tracker.test.mjs     # 25 assertions — the accountability tracker
 ```
 
 `tracker.test.mjs` is mostly date logic, which is where trackers break. It is
@@ -166,8 +166,13 @@ and whether it happened. Nothing in the credit math reads the tracker.
 **Shape.** Category → Project → Task. Each task has a title, one or more
 owners, a due date, a status (Not started / In progress / Blocked / Done), what
 it is blocked by, and its source — where the commitment came from ("Sep 4
-standup", "BAM call"). A category can point at the KPI node it reconciles with;
-the chip on the category opens that node in the tree.
+standup", "BAM call").
+
+Categories are the tracker's own — Credit Model, Marketplace, Pool Investors,
+VC Investors, Trader Acquisition, Bot Building Partnerships, Frontend Terminals,
+Venue Partnerships, Company — and deliberately don't mirror the KPI tree's
+branches. None links to a KPI node. A category's drawer can still point at one
+by hand, which adds a chip that opens that node.
 
 **Views.**
 
@@ -212,6 +217,7 @@ edits are written to the change log like node edits.
 | `structure.test.mjs` | Tests for add / move / delete node. |
 | `tracker.test.mjs` | Tests for the tracker, including dates across timezones and DST. |
 | `tracker-seed.mjs` | One-shot seed for the tracker. Already run; kept for reference. |
+| `tracker-recategorise.mjs` | One-shot: the tracker's own categories, unlinked from the KPI tree. Already run; kept for reference. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
 
 **Concurrency.** `os_state` has an integer `version`. A save matches on the

@@ -1092,28 +1092,48 @@
     "categories": [
       {
         "id": "tc_credit",
-        "title": "Credit model",
-        "kpi_node_id": "risk"
+        "title": "Credit Model",
+        "kpi_node_id": ""
+      },
+      {
+        "id": "tc_marketplace",
+        "title": "Marketplace",
+        "kpi_node_id": ""
+      },
+      {
+        "id": "tc_pool",
+        "title": "Pool Investors",
+        "kpi_node_id": ""
       },
       {
         "id": "tc_fundraise",
-        "title": "Fundraise",
-        "kpi_node_id": "raise"
+        "title": "VC Investors",
+        "kpi_node_id": ""
       },
       {
         "id": "tc_traders",
-        "title": "Trader acquisition",
-        "kpi_node_id": "traders"
+        "title": "Trader Acquisition",
+        "kpi_node_id": ""
+      },
+      {
+        "id": "tc_botbuild",
+        "title": "Bot Building Partnerships",
+        "kpi_node_id": ""
+      },
+      {
+        "id": "tc_frontends",
+        "title": "Frontend Terminals",
+        "kpi_node_id": ""
       },
       {
         "id": "tc_partners",
-        "title": "Partnerships",
-        "kpi_node_id": "partnerships"
+        "title": "Venue Partnerships",
+        "kpi_node_id": ""
       },
       {
         "id": "tc_company",
         "title": "Company",
-        "kpi_node_id": "ops"
+        "kpi_node_id": ""
       }
     ],
     "projects": [

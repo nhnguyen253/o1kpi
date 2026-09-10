@@ -350,7 +350,10 @@ export function mountTracker(h) {
         '<button type="button" class="btn primary" data-tk-new-category>+ Category</button>');
     }
     const f = filtersFor('project');
-    const narrowed = !!(f.owner || f.status);
+    // Only an owner or a specific status narrows the structure. The default
+    // "Open" must not: it would hide every category that has no projects yet,
+    // and with it the only "+ Project" button for that category.
+    const narrowed = !!(f.owner || (f.status && f.status !== 'open'));
     const cards = [];
 
     for (const c of t.categories.filter((x) => !prefs.category || x.id === prefs.category)) {
