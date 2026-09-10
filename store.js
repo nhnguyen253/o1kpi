@@ -19,7 +19,7 @@
  * surface a conflict instead of silently clobbering their work.
  */
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isConfigured } from './config.js';
-import { emptyTracker } from './tracker.js';
+import { emptyTracker, syncBlocked } from './tracker.js';
 
 const LOCAL_KEY = 'o1kpi_local_db_v2';
 const ACTOR_KEY = 'o1kpi_actor';
@@ -79,7 +79,12 @@ function normalize(db) {
     for (const task of t.tasks) {
       task.owners ??= [];
       task.blocked_by_tasks = (task.blocked_by_tasks ?? []).filter((id) => ids.has(id) && id !== task.id);
+      task.status_before_block ??= '';
     }
+    // Statuses follow dependencies. An older cached copy of the app, or a
+    // blocker finished elsewhere, can leave them out of step; fix that here so
+    // what is shown always matches. The next save persists it.
+    syncBlocked(t);
   }
   return db;
 }

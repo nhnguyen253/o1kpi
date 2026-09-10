@@ -15,7 +15,7 @@ import {
   STATUSES, STATUS_LABEL, localDate, parseDate, daysBetween, addDays, weekBounds,
   isDone, isOpen, isOverdue, applyStatus, index, projectsIn, filterTasks, sortByDue,
   bucketMine, heldUpBy, overdueByOwner, blockedByDependency, weeklyRollup, weeklyByOwner,
-  openBlockers, isBlocked, blocking, dependentsOf, removeTasks, validateTracker,
+  openBlockers, isBlocked, blocking, dependentsOf, removeTasks, syncBlocked, validateTracker,
 } from './tracker.js';
 
 const PREFS_KEY = 'o1kpi_tracker_v1';
@@ -132,20 +132,16 @@ export function mountTracker(h) {
         `<option value="${s}" ${s === t.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>`;
   }
 
-  /** What `t` is waiting on: linked tasks first, then the free-text reason. */
+  /** The unfinished tasks `t` is waiting on, and whose they are. */
   function waitingNote(t) {
     if (isDone(t)) return '';
     const blockers = openBlockers(t, ix.task);
-    const text = t.blocked_by?.trim();
     if (blockers.length) {
       const named = blockers.map((b) => `${esc(b.title)} (${esc(ownerNames(b.owners))})`);
       return `<span class="tk-blocked" title="${esc(blockers.map((b) => b.title).join('\n'))}">Waiting on: ${
-        named.slice(0, 2).join(', ')}${named.length > 2 ? ` +${named.length - 2} more` : ''}${text ? ` · also ${esc(text)}` : ''}</span>`;
+        named.slice(0, 2).join(', ')}${named.length > 2 ? ` +${named.length - 2} more` : ''}</span>`;
     }
-    if (t.status !== 'blocked') return '';
-    if (text) return `<span class="tk-blocked">Blocked on: ${esc(text)}</span>`;
-    if ((t.blocked_by_tasks ?? []).length) return '<span class="tk-ready">Ready — everything it waited on is done</span>';
-    return '<span class="tk-blocked">Blocked — reason not given</span>';
+    return t.status === 'blocked' ? '<span class="tk-blocked">Blocked — pick the task it’s waiting on</span>' : '';
   }
 
   /** What can't move until `t` is done — the line its owner needs to see. */
@@ -156,10 +152,6 @@ export function mountTracker(h) {
     return `<div class="tk-holding" title="${esc(held.map((x) => x.title).join('\n'))}">Holding up ${held.length} task${
       held.length === 1 ? '' : 's'} for ${esc(who)}: ${held.map((x) => esc(x.title)).join(' · ')}</div>`;
   }
-
-  /** A task can be blocked by a link while its status still says Not started. Say so. */
-  const blockedTag = (t) => (isBlocked(t, ix.task) && t.status !== 'blocked'
-    ? ' <span class="tk-tag late">Blocked</span>' : '');
 
   /**
    * One task. `hideOwner` drops the person a view is already about, so their
@@ -181,7 +173,7 @@ export function mountTracker(h) {
         waitingNote(t),
       ].filter(Boolean).join(' · ');
       return `${open}${statusSelect(t)}
-        <div class="tk-main"><div class="tk-title">${esc(t.title)}${blockedTag(t)}</div>
+        <div class="tk-main"><div class="tk-title">${esc(t.title)}</div>
           <div class="tk-meta">${meta}</div>${holdingLine(t)}</div>
       </div>`;
     }
@@ -193,7 +185,7 @@ export function mountTracker(h) {
     ].filter(Boolean).join(' · ');
     return `${open}${statusSelect(t)}
       <div class="tk-main">
-        <div class="tk-title">${esc(t.title)}${blockedTag(t)}</div>
+        <div class="tk-title">${esc(t.title)}</div>
         ${meta ? `<div class="tk-meta">${meta}</div>` : ''}
         ${holdingLine(t)}
       </div>
@@ -364,19 +356,16 @@ export function mountTracker(h) {
 
   function blockedHtml() {
     const tasks = filterTasks(tr(), filtersFor('blocked'));
-    const g = blockedByDependency(tasks, people(), tr().tasks);
-    if (!g.people.length && !g.external.length && !g.unexplained.length && !g.ready.length) {
+    const g = blockedByDependency(tasks, tr().tasks);
+    if (!g.people.length && !g.unexplained.length) {
       return emptyHtml('Nothing is blocked',
-        'When something can’t move, link the task it’s waiting on — or name a teammate — and it lands under them here.');
+        'Pick the tasks something is waiting on, and it lands here under the people it waits on.');
     }
     const sections = [
       ...g.people.map((p) => groupHtml(
         `Waiting on ${esc(person(p.contributor_id).name)} ${count(p.tasks.length)}`, rows(p.tasks))),
-      g.external.length ? groupHtml(`Waiting on something else ${count(g.external.length)}`, rows(g.external)) : '',
-      g.unexplained.length ? groupHtml(`Reason not given ${count(g.unexplained.length)}`, rows(g.unexplained),
-        { tone: 'warn', hint: 'Say what these are waiting on, so the right person sees them.' }) : '',
-      g.ready.length ? groupHtml(`Ready to unblock ${count(g.ready.length)}`, rows(g.ready),
-        { hint: 'Everything these waited on is done. Move them on.' }) : '',
+      g.unexplained.length ? groupHtml(`Nothing picked ${count(g.unexplained.length)}`, rows(g.unexplained),
+        { tone: 'warn', hint: 'Marked Blocked with no task picked. Open each and pick what it waits on.' }) : '',
     ].filter(Boolean);
     return `<div class="card">${sections.join('')}</div>`;
   }
@@ -486,6 +475,12 @@ export function mountTracker(h) {
     let audit;
     try {
       audit = mutate(dbRef.tracker) ?? [];
+      // Statuses follow dependencies: finishing a blocker unblocks what waited
+      // on it, reopening one blocks it again. Log each automatic move.
+      for (const c of syncBlocked(dbRef.tracker, new Date().toISOString())) {
+        audit.push({ node_id: c.task.id, node_title: c.task.title, field: 'task status (automatic)',
+          old_value: STATUS_LABEL[c.from], new_value: STATUS_LABEL[c.to] });
+      }
     } catch (e) {
       dbRef.tracker = snapshot;
       h.banner(esc(e.message), 'bad');
@@ -515,19 +510,26 @@ export function mountTracker(h) {
   const gone = () => new Error('That task no longer exists — someone may have just deleted it.');
 
   async function setStatus(id, status) {
-    let needsReason = false;
+    // Blocked isn't something you say, it's something you're waiting on: open
+    // the task to pick what. Nothing changes until that's saved.
+    if (status === 'blocked') { render(); openTask(id, { status: 'blocked', focus: 'deps' }); return; }
+    let stillWaiting = [];
     const res = await commit((t) => {
       const task = t.tasks.find((x) => x.id === id);
       if (!task) throw gone();
       const before = task.status;
       if (before === status) return [];
       applyStatus(task, status);
-      needsReason = status === 'blocked' && !task.blocked_by?.trim() && !(task.blocked_by_tasks ?? []).length;
+      stillWaiting = status === 'done' ? [] : openBlockers(task, ix.task);
       return [{ node_id: task.id, node_title: task.title, field: 'task status',
         old_value: STATUS_LABEL[before], new_value: STATUS_LABEL[status] }];
     });
-    // Blocked with no reason is half a status. Ask for the reason straight away.
-    if (res.ok && needsReason) openTask(id, { focus: 'tkBlocked' });
+    // Still waiting: it stays Blocked, and goes to the chosen status once free.
+    if (res.ok && stillWaiting.length) {
+      h.banner(`Still waiting on ${esc(stillWaiting.map((b) => b.title).join(', '))}, so it stays Blocked. `
+        + `It will move to ${STATUS_LABEL[status]} as soon as that’s done.`, 'warn',
+        { label: 'Dismiss', fn: () => h.banner('') });
+    }
   }
 
   function diffTask(before, after) {
@@ -542,7 +544,6 @@ export function mountTracker(h) {
     push('task owners', ownerNames(before.owners), ownerNames(after.owners));
     push('task due', before.due_date || 'none', after.due_date || 'none');
     push('task status', STATUS_LABEL[before.status], STATUS_LABEL[after.status]);
-    push('task blocked by', before.blocked_by, after.blocked_by);
     const titles = (ids) => (ids ?? []).map((id) => tr().tasks.find((x) => x.id === id)?.title ?? id).sort().join(', ');
     push('task waiting on', titles(before.blocked_by_tasks), titles(after.blocked_by_tasks));
     push('task source', before.source, after.source);
@@ -582,7 +583,7 @@ export function mountTracker(h) {
     }
     const me = minePerson();
     const task = existing ?? {
-      title: '', status: 'not_started', due_date: '', blocked_by: '', blocked_by_tasks: [], source: '',
+      title: '', status: 'not_started', due_date: '', blocked_by_tasks: [], source: '',
       project_id: opts.project_id || prefs.project || t.projects[0].id,
       owners: opts.owners ?? (me ? [me] : []),
     };
@@ -625,21 +626,18 @@ export function mountTracker(h) {
       <div class="two">
         <div class="field"><label>Due date</label><input id="tkDue" type="date" value="${esc(task.due_date)}"></div>
         <div class="field"><label>Status</label><select id="tkStatus">${STATUSES.map((s) =>
-          `<option value="${s}" ${s === task.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div>
+          `<option value="${s}" ${s === (opts.status ?? task.status) ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div>
       </div>
       ${heldUp.length ? `<div class="field"><label>Holding up</label>
         <div class="tk-held">${heldUp.map((x) => `<div><span>${esc(x.title)}</span>
           <span class="muted">${esc(ownerNames(x.owners))}</span></div>`).join('')}</div>
         <div class="readout">These can’t move until this is done.</div></div>` : ''}
-      <div class="field"><label>Waiting on</label>
+      <div class="field"><label>Blocked by</label>
         <div class="tk-deps">${candidates.map((x) => `
           <label class="check"><input type="checkbox" value="${esc(x.id)}" ${linked.has(x.id) ? 'checked' : ''}>
             <span><span>${esc(x.title)}</span><span class="muted">${esc(ownerNames(x.owners))} · ${
               STATUS_LABEL[x.status]} · ${esc(ix.categoryOf(x)?.title ?? '')}</span></span></label>`).join('')
           || '<div class="tk-none">No other open tasks.</div>'}</div>
-        <div class="readout">Tick what has to be finished first. Its owners see this on their list as work they’re holding up.</div></div>
-      <div class="field"><label>Also blocked by</label>
-        <input id="tkBlocked" value="${esc(task.blocked_by)}" placeholder="Anything that isn’t a task here — e.g. a venue integration doc">
         <div class="readout" id="tkBlockedHint"></div></div>
       <div class="field"><label>Source</label>
         <input id="tkSource" value="${esc(task.source)}" placeholder="Where it came from — e.g. Sep 4 standup, BAM call"></div>
@@ -650,18 +648,39 @@ export function mountTracker(h) {
         heldUp.length ? ` (${heldUp.length} waiting on it)` : ''}</button></div>` : ''}`);
 
     const depsTicked = () => [...$('drawerBody').querySelectorAll('.tk-deps input:checked')].map((i) => i.value);
-    const hint = () => {
-      const blocked = $('tkStatus').value === 'blocked';
-      const empty = !$('tkBlocked').value.trim() && !depsTicked().length;
-      $('tkBlockedHint').textContent = blocked && empty
-        ? 'Say what it’s waiting on — tick a task above, or describe it here. Name a teammate and it shows up under them.'
-        : 'For blockers that aren’t tasks. Naming a teammate routes it to them in the Blocked view.';
+    const openTicked = () => depsTicked().map((id) => t.tasks.find((x) => x.id === id)).filter((x) => x && isOpen(x));
+    // What the status goes back to when nothing is left to wait on.
+    const unblockedStatus = () => (existing && existing.status !== 'blocked' ? existing.status
+      : (STATUSES.includes(existing?.status_before_block) && existing.status_before_block !== 'blocked'
+        ? existing.status_before_block : 'not_started'));
+    const statusSel = $('tkStatus');
+
+    // Ticking an unfinished task makes this Blocked on the spot, and the block
+    // lands on that task's owners. Unticking everything releases it.
+    const sync = () => {
+      const blockers = openTicked();
+      if (blockers.length && statusSel.value !== 'done') statusSel.value = 'blocked';
+      else if (!blockers.length && statusSel.value === 'blocked' && depsTicked().length) statusSel.value = unblockedStatus();
+      const who = ownerNames([...new Set(blockers.flatMap((b) => b.owners ?? []))]);
+      $('tkBlockedHint').innerHTML = blockers.length
+        ? `<span class="tk-blocked">Blocked — the block goes to ${esc(who)}.</span> They’ll see it on their list; it clears itself when ${blockers.length === 1 ? 'that task is' : 'those are'} done.`
+        : statusSel.value === 'blocked'
+          ? '<span class="tk-blocked">Tick the task it’s waiting on — that’s what makes it blocked.</span>'
+          : 'Tick the tasks that have to finish first. This becomes Blocked, and the block goes to their owners.';
     };
-    $('tkStatus').onchange = hint;
-    $('tkBlocked').oninput = hint;
-    $('drawerBody').querySelector('.tk-deps').onchange = hint;
-    hint();
-    if (opts.focus) setTimeout(() => $(opts.focus)?.focus(), 240);   // after the drawer slides in
+    statusSel.onchange = () => {
+      if (statusSel.value === 'blocked' && !openTicked().length) $('drawerBody').querySelector('.tk-deps input')?.focus();
+      if (statusSel.value !== 'blocked' && openTicked().length && statusSel.value !== 'done') {
+        // Can't be un-blocked while it still waits; say so instead of pretending.
+        statusSel.value = 'blocked';
+      }
+      sync();
+    };
+    $('drawerBody').querySelector('.tk-deps').onchange = sync;
+    sync();
+    const focusDeps = () => $('drawerBody').querySelector('.tk-deps input')?.focus();
+    if (opts.focus === 'deps') setTimeout(focusDeps, 240);           // after the drawer slides in
+    else if (opts.focus) setTimeout(() => $(opts.focus)?.focus(), 240);
     else if (!existing) setTimeout(() => $('tkTitle')?.focus(), 240);
 
     $('tkSaveBtn').onclick = async () => {
@@ -674,11 +693,18 @@ export function mountTracker(h) {
         title, owners,
         project_id: $('tkProject').value,
         due_date: $('tkDue').value,
-        blocked_by: $('tkBlocked').value.trim(),
         blocked_by_tasks: depsTicked(),
         source: $('tkSource').value.trim(),
       };
       const status = $('tkStatus').value;
+      if (status === 'blocked' && !openTicked().length) {
+        return fail(depsTicked().length
+          ? 'Everything ticked is already done, so there’s nothing to wait on.'
+          : 'Tick the task it’s waiting on — that’s what makes it blocked.');
+      }
+      // Blocked is never set directly: set what it really is underneath, and
+      // let the sync block it, remembering that for when it's released.
+      const underlying = status === 'blocked' ? unblockedStatus() : status;
       const btn = $('tkSaveBtn');
       btn.disabled = true;
       btn.textContent = 'Saving…';
@@ -686,8 +712,9 @@ export function mountTracker(h) {
       const res = await commit((tt) => {
         const now = new Date().toISOString();
         if (!existing) {
-          const created = { id: newId('tt'), ...fields, status: 'not_started', created_at: now, updated_at: now, done_at: '' };
-          applyStatus(created, status, now);
+          const created = { id: newId('tt'), ...fields, status: 'not_started', status_before_block: '',
+            created_at: now, updated_at: now, done_at: '' };
+          applyStatus(created, underlying, now);
           tt.tasks.push(created);
           return [{ node_id: created.id, node_title: created.title, field: 'task created', old_value: '',
             new_value: `${ownerNames(owners)} · ${projectTitle(fields.project_id)}` }];
@@ -696,7 +723,8 @@ export function mountTracker(h) {
         if (!live) throw gone();
         const audit = diffTask(live, { ...fields, status });
         Object.assign(live, fields);
-        if (live.status !== status) applyStatus(live, status, now);
+        if (live.status === 'blocked' && status === 'blocked') live.updated_at = now;   // stays blocked
+        else if (live.status !== underlying) applyStatus(live, underlying, now);
         else live.updated_at = now;
         return audit;
       });

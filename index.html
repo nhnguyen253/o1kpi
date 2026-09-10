@@ -554,6 +554,14 @@ textarea {
 .check input {
   width:auto;
 }
+/* `.field label` (display:block, muted 11px) outranks `.check` for any
+   checkbox inside a form field, so restate what a check row is. */
+.field .check {
+  display:flex;
+  margin-bottom:0;
+  color:var(--text);
+  font-size:12px;
+}
 .callout {
   margin-top:8px;
   padding:10px 12px;

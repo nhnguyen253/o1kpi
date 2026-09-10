@@ -11,14 +11,16 @@
  *   categories: [{ id, title, kpi_node_id }]
  *   projects:   [{ id, category_id, title }]
  *   tasks:      [{ id, project_id, title, owners: [contributor_id], due_date,
- *                  status, blocked_by, blocked_by_tasks: [task_id], source,
- *                  created_at, updated_at, done_at }]
+ *                  status, blocked_by_tasks: [task_id], status_before_block,
+ *                  source, created_at, updated_at, done_at }]
  *
- * Dependencies. `blocked_by_tasks` lists tasks that must be finished first;
- * `blocked_by` stays free text for anything that isn't a task here. Being
- * blocked is derived, not stored: a task is blocked if someone set its status
- * to Blocked, OR it is waiting on a task that isn't done. The reverse — what a
- * task is holding up — is what each owner sees on their own list.
+ * Blocking is by task, never by description: a task is blocked by picking the
+ * tasks it waits on, and the block lands on those tasks' owners. `syncBlocked`
+ * keeps the status honest — Blocked while anything it waits on is unfinished,
+ * back to whatever it was (`status_before_block`) the moment the last one is
+ * done. The reverse — what a task is holding up — is what each owner sees on
+ * their own list. (Older rows may still carry a free-text `blocked_by`; nothing
+ * reads it any more.)
  *
  * Dates. `due_date` is a calendar date, 'YYYY-MM-DD', exactly what an
  * <input type="date"> produces. It is compared as a string against today's
@@ -146,6 +148,39 @@ export function dependentsOf(tasks, id) {
   return out;
 }
 
+/**
+ * Keep every status in step with its dependencies. Run after any change.
+ *
+ *   waiting on unfinished work  -> Blocked; the status it had is remembered
+ *   nothing left to wait on     -> back to the remembered status
+ *
+ * A task marked Blocked with no links at all is left alone: it has no
+ * blocker to clear it, so it is flagged for someone to pick one. Returns what
+ * changed, for the change log. Pass `nowIso` to stamp updated_at.
+ */
+export function syncBlocked(tracker, nowIso = null) {
+  const byId = taskIndex(tracker.tasks);
+  const changed = [];
+  for (const t of tracker.tasks) {
+    if (isDone(t)) continue;
+    const waiting = openBlockers(t, byId).length > 0;
+    if (waiting && t.status !== 'blocked') {
+      t.status_before_block = t.status;
+      t.status = 'blocked';
+      if (nowIso) t.updated_at = nowIso;
+      changed.push({ task: t, from: t.status_before_block, to: 'blocked' });
+    } else if (!waiting && t.status === 'blocked' && (t.blocked_by_tasks ?? []).length) {
+      const back = STATUSES.includes(t.status_before_block) && t.status_before_block !== 'blocked'
+        ? t.status_before_block : 'not_started';
+      t.status = back;
+      t.status_before_block = '';
+      if (nowIso) t.updated_at = nowIso;
+      changed.push({ task: t, from: 'blocked', to: back });
+    }
+  }
+  return changed;
+}
+
 /** Delete tasks and scrub them from every other task's waiting-on list. */
 export function removeTasks(tracker, ids) {
   const gone = new Set(ids);
@@ -265,64 +300,31 @@ export function overdueByOwner(tasks, today) {
 }
 
 /**
- * Contributors named in free text, excluding `except` (a task's own owners —
- * someone mentioning themselves isn't a cross-team dependency). Whole-word,
- * case-insensitive, so "Nam" does not match "Vietnam".
- */
-export function mentionedContributors(text, contributors, except = []) {
-  if (!text) return [];
-  return contributors.filter((c) => {
-    if (except.includes(c.id) || !c.name) return false;
-    const name = c.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`(^|[^\\p{L}\\p{N}])${name}($|[^\\p{L}\\p{N}])`, 'iu').test(text);
-  });
-}
-
-/**
  * Blocked work grouped by who it is waiting on — which is the point of this
- * view: it surfaces dependencies between people. The people come from the
- * owners of the unfinished tasks it waits on, plus any teammate named in its
- * free-text reason (under each, if several). Anything else is "something
- * else". Two groups need chasing in their own right:
- *
- *   unexplained — Blocked, with no reason and nothing linked.
- *   ready       — still marked Blocked, but everything it waited on is done.
+ * view: it surfaces dependencies between people. The block belongs to the
+ * owners of the unfinished tasks it waits on, so it files under each of them.
+ * A task marked Blocked with nothing picked has no one to wait on; it goes in
+ * `unexplained`, to be chased until someone picks what it waits on.
  *
  * `allTasks` is the whole tracker: a blocker can sit outside the filtered view.
  */
-export function blockedByDependency(tasks, contributors, allTasks = tasks) {
+export function blockedByDependency(tasks, allTasks = tasks) {
   const byId = taskIndex(allTasks);
   const people = new Map();
-  const external = [];
   const unexplained = [];
-  const ready = [];
   for (const t of tasks.filter((x) => isBlocked(x, byId))) {
-    const owners = t.owners ?? [];
-    const blockers = openBlockers(t, byId);
-    const named = [...new Set([
-      ...blockers.flatMap((b) => b.owners ?? []),
-      ...mentionedContributors(t.blocked_by, contributors).map((c) => c.id),
-    ])].filter((id) => !owners.includes(id));
-    if (named.length) {
-      for (const id of named) {
-        if (!people.has(id)) people.set(id, []);
-        people.get(id).push(t);
-      }
-    } else if (t.blocked_by?.trim() || blockers.length) {
-      external.push(t);
-    } else if ((t.blocked_by_tasks ?? []).length) {
-      ready.push(t);
-    } else {
-      unexplained.push(t);
+    const owners = [...new Set(openBlockers(t, byId).flatMap((b) => b.owners ?? []))];
+    if (!owners.length) { unexplained.push(t); continue; }
+    for (const id of owners) {
+      if (!people.has(id)) people.set(id, []);
+      people.get(id).push(t);
     }
   }
   return {
     people: [...people.entries()]
       .map(([contributor_id, list]) => ({ contributor_id, tasks: list }))
       .sort((a, b) => b.tasks.length - a.tasks.length),
-    external,
     unexplained,
-    ready,
   };
 }
 

@@ -1203,12 +1203,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt02",
@@ -1219,12 +1219,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt03",
@@ -1235,12 +1235,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt04",
@@ -1252,12 +1252,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt05",
@@ -1269,12 +1269,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt06",
@@ -1285,12 +1285,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt07",
@@ -1301,12 +1301,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt08",
@@ -1317,12 +1317,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt09",
@@ -1333,12 +1333,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt10",
@@ -1349,12 +1349,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt11",
@@ -1365,12 +1365,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt12",
@@ -1381,12 +1381,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt13",
@@ -1397,12 +1397,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt14",
@@ -1413,12 +1413,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt15",
@@ -1429,12 +1429,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt_docs_nda",
@@ -1446,12 +1446,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt_pool_sim",
@@ -1462,12 +1462,12 @@
         ],
         "due_date": "",
         "status": "not_started",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
-        "blocked_by_tasks": []
+        "blocked_by_tasks": [],
+        "status_before_block": ""
       },
       {
         "id": "tt_send1",
@@ -1478,14 +1478,14 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
         "blocked_by_tasks": [
           "tt05"
-        ]
+        ],
+        "status_before_block": ""
       },
       {
         "id": "tt_send2",
@@ -1496,14 +1496,14 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "Venue integration doc",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
         "done_at": "",
         "blocked_by_tasks": [
           "tt05"
-        ]
+        ],
+        "status_before_block": ""
       },
       {
         "id": "tt_send3",
@@ -1514,7 +1514,6 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
@@ -1522,7 +1521,8 @@
         "blocked_by_tasks": [
           "tt05",
           "tt_docs_nda"
-        ]
+        ],
+        "status_before_block": ""
       },
       {
         "id": "tt_send4",
@@ -1533,7 +1533,6 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
@@ -1542,7 +1541,8 @@
           "tt05",
           "tt_docs_nda",
           "tt_pool_sim"
-        ]
+        ],
+        "status_before_block": ""
       },
       {
         "id": "tt_send5",
@@ -1553,7 +1553,6 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
@@ -1562,7 +1561,8 @@
           "tt_docs_nda",
           "tt_pool_sim",
           "tt06"
-        ]
+        ],
+        "status_before_block": ""
       }
     ]
   }

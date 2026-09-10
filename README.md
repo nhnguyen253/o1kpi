@@ -165,7 +165,7 @@ and whether it happened. Nothing in the credit math reads the tracker.
 
 **Shape.** Category → Project → Task. Each task has a title, one or more
 owners, a due date, a status (Not started / In progress / Blocked / Done), the
-tasks it is waiting on, anything else it is blocked by, and its source — where the commitment came from ("Sep 4
+tasks it is blocked by, and its source — where the commitment came from ("Sep 4
 standup", "BAM call").
 
 Categories are the tracker's own — Credit Model, Marketplace, Pool Investors,
@@ -180,16 +180,17 @@ by hand, which adds a chip that opens that node.
 |---|---|
 | **My tasks** | One person's work. First, what they're **holding up** — unfinished tasks other people are waiting on, biggest hold-up first. Then overdue, this week, later, undated; then what they're **waiting on others** for. Defaults to whoever is picked in the header's *Who are you?* |
 | **Overdue** | Everything past due across the company, grouped by owner. A shared task appears under each owner. |
-| **Blocked** | Grouped by who it is waiting on: the owners of the tasks it waits on, plus anyone named in its free-text reason. Also flags work still marked Blocked whose blockers are all done. |
+| **Blocked** | Grouped by who it is waiting on — the owners of the tasks it is blocked by. Anything marked Blocked with no task picked is flagged to be fixed. |
 | **By project** | Every project under its category, or one project. |
 | **Weekly** | *Due* this week; *Shipped* — marked done this week, whenever it was due; *Slipped* — due this week, date passed, not done by then. Work finished late counts as slipped, flagged "done late". |
 
-**Dependencies.** A task's *Waiting on* list links the tasks that must finish
-first. Blocked is derived, not just a status: a task is blocked if it's marked
-Blocked **or** waits on unfinished work, and it frees itself the moment its
-blockers are done. The reverse is shown to the blocker's owner — each of their
-rows says what it is holding up, and for whom. Loops can't be created, and
-deleting a task takes it off every waiting-on list.
+**Blocking is by task, never by description.** In a task's *Blocked by* list
+you tick the tasks that have to finish first. It turns Blocked on the spot and
+the block goes to those tasks' owners — it's on their list as work they're
+holding up. When the last one is done it unblocks itself, back to the status
+it had; reopen a blocker and it's blocked again. Picking Blocked from the
+status menu opens that list, and Blocked can't be saved without a task picked.
+Loops can't be created, and deleting a task takes it off every list.
 
 Filters (owner, category, project, status) and the current view persist per
 browser in `localStorage`. Weeks run Monday to Sunday.
@@ -227,6 +228,7 @@ edits are written to the change log like node edits.
 | `tracker-recategorise.mjs` | One-shot: the tracker's own categories, unlinked from the KPI tree. Already run; kept for reference. |
 | `tracker-investors.mjs` | One-shot: investor docs and the sends blocked on them; Tech sync to Marketplace. Already run; kept for reference. |
 | `tracker-deps.mjs` | One-shot: links the investor sends to the doc tasks they wait on. Already run; kept for reference. |
+| `tracker-blockers.mjs` | One-shot: blocking by task only — clears free-text reasons and syncs statuses. Already run; kept for reference. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
 
 **Concurrency.** `os_state` has an integer `version`. A save matches on the

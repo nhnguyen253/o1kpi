@@ -9,9 +9,9 @@ import assert from 'node:assert/strict';
 import {
   localDate, parseDate, daysBetween, addDays, weekBounds,
   isOverdue, daysOverdue, applyStatus, filterTasks, sortByDue, bucketByDue,
-  overdueByOwner, mentionedContributors, blockedByDependency,
+  overdueByOwner, blockedByDependency,
   weeklyRollup, weeklyByOwner, validateTracker, STATUSES,
-  taskIndex, openBlockers, isBlocked, blocking, dependentsOf, removeTasks, bucketMine, heldUpBy,
+  taskIndex, openBlockers, isBlocked, blocking, dependentsOf, removeTasks, bucketMine, heldUpBy, syncBlocked,
 } from './tracker.js';
 import { linkInvestorDeps } from './tracker-deps.mjs';
 import { recategorise } from './tracker-recategorise.mjs';
@@ -159,27 +159,19 @@ test('overdue groups by owner, and a shared task lands under each owner', () => 
 
 console.log('\nblocked');
 
-test('name mentions are whole-word, case-insensitive, and skip the owners', () => {
-  const names = (l) => l.map((c) => c.name);
-  assert.deepEqual(names(mentionedContributors('waiting on nam for the API', people)), ['Nam']);
-  assert.deepEqual(names(mentionedContributors('the Vietnam desk', people)), [], 'not a substring match');
-  assert.deepEqual(names(mentionedContributors('Nam and Asad to agree', people, ['nam'])), ['Asad']);
-  assert.deepEqual(mentionedContributors('', people), []);
-});
 
-test('blocked work groups by who or what it waits on', () => {
-  const onNam = task({ owners: ['ethan'], status: 'blocked', blocked_by: 'Nam to ship the scoring API' });
-  const onBoth = task({ owners: ['francis'], status: 'blocked', blocked_by: 'sign-off from Asad and Nam' });
-  const external = task({ status: 'blocked', blocked_by: 'Aster legal review' });
-  const silent = task({ status: 'blocked', blocked_by: '  ' });
-  const self = task({ owners: ['nam'], status: 'blocked', blocked_by: 'Nam needs a GPU box' });
-  const notBlocked = task({ status: 'in_progress', blocked_by: 'Nam' });
-  const g = blockedByDependency([onNam, onBoth, external, silent, self, notBlocked], people);
-  const people_ = Object.fromEntries(g.people.map((x) => [x.contributor_id, x.tasks]));
-  assert.deepEqual(people_.nam, [onNam, onBoth]);
-  assert.deepEqual(people_.asad, [onBoth], 'naming two people files under both');
-  assert.deepEqual(g.external, [external, self], 'naming only yourself is not a dependency');
-  assert.deepEqual(g.unexplained, [silent], 'blank reasons are their own group');
+test('blocked work files under the owners of the tasks it waits on', () => {
+  const doc = task({ id: 'doc', owners: ['nam', 'asad'] });
+  const sim = task({ id: 'sim', owners: ['nam'] });
+  const a = task({ id: 'a', owners: ['ethan'], blocked_by_tasks: ['doc'] });
+  const b = task({ id: 'b', owners: ['francis'], blocked_by_tasks: ['sim'] });
+  const picked = task({ id: 'p', owners: ['ethan'], status: 'blocked' });   // Blocked, nothing picked
+  const free = task({ id: 'f', owners: ['ethan'], blocked_by_tasks: ['gone'] });
+  const all = [doc, sim, a, b, picked, free];
+  const g = blockedByDependency([a, b, picked, free], all);
+  const by = Object.fromEntries(g.people.map((x) => [x.contributor_id, x.tasks.map((t) => t.id)]));
+  assert.deepEqual(by, { nam: ['a', 'b'], asad: ['a'] }, 'the block goes to each blocker owner');
+  assert.deepEqual(g.unexplained.map((t) => t.id), ['p'], 'Blocked with nothing picked is chased');
 });
 
 console.log('\nweekly rollup');
@@ -268,9 +260,8 @@ test('the seed invents nothing: no dates, no sources, and only declared blocks',
     assert.equal(t.due_date, '', `${t.title} has an invented due date`);
     assert.equal(t.source, '', `${t.title} has an invented source`);
     assert.ok(['not_started', 'blocked'].includes(t.status), `${t.title} has an invented status`);
-    if (t.status === 'blocked') {
-      assert.ok(t.blocked_by.trim() || t.blocked_by_tasks.length, `${t.title} is blocked without saying on what`);
-    }
+    if (t.status === 'blocked') assert.ok(t.blocked_by_tasks.length, `${t.title} is blocked without a blocking task`);
+    assert.ok(!('blocked_by' in t), `${t.title} still has a free-text reason`);
   }
 });
 
@@ -288,9 +279,7 @@ test('every investor send is blocked on the docs, and waits on the people who ow
     assert.equal(t.status, 'blocked', t.title);
     assert.deepEqual(t.owners, ['ethan'], t.title);
   }
-  const g = blockedByDependency(seed.tracker.tasks, [
-    { id: 'ethan', name: 'Ethan' }, { id: 'pmt0z6mh6', name: 'Asad' }, { id: 'nam', name: 'Nam' },
-  ]);
+  const g = blockedByDependency(seed.tracker.tasks);
   const waiting = Object.fromEntries(g.people.map((p) => [p.contributor_id, p.tasks.length]));
   assert.deepEqual(waiting, { pmt0z6mh6: 5, nam: 5 }, 'the Blocked view routes all five to the doc owners');
 });
@@ -404,16 +393,32 @@ test('my list leads with what holds others up and ends with what waits on others
   assert.equal(heldUpBy([big, small], all).length, 3, 'distinct tasks held up');
 });
 
-test('the Blocked view routes by the blocker\'s owners, and flags ready work', () => {
-  const doc = task({ id: 'doc', owners: ['nam', 'asad'] });
-  const send = task({ id: 'send', owners: ['ethan'], blocked_by_tasks: ['doc'] });
-  const done = task({ id: 'done', owners: ['nam'], status: 'done' });
-  const stale = task({ id: 'stale', owners: ['ethan'], status: 'blocked', blocked_by_tasks: ['done'] });
-  const all = [doc, send, done, stale];
-  const g = blockedByDependency([send, stale], people, all);
-  const by = Object.fromEntries(g.people.map((p) => [p.contributor_id, p.tasks.map((t) => t.id)]));
-  assert.deepEqual(by, { nam: ['send'], asad: ['send'] });
-  assert.deepEqual(g.ready.map((t) => t.id), ['stale'], 'still marked Blocked, but its blocker is done');
+test('picking a blocker blocks the task; finishing it restores what it was', () => {
+  const doc = task({ id: 'doc', owners: ['nam'] });
+  const send = task({ id: 'send', owners: ['ethan'], status: 'in_progress', blocked_by_tasks: ['doc'] });
+  const tr = trackerOf([doc, send]);
+  let moved = syncBlocked(tr);
+  assert.equal(send.status, 'blocked', 'blocked as soon as it waits on unfinished work');
+  assert.equal(send.status_before_block, 'in_progress');
+  assert.deepEqual(moved.map((m) => [m.task.id, m.from, m.to]), [['send', 'in_progress', 'blocked']]);
+  applyStatus(doc, 'done');
+  moved = syncBlocked(tr);
+  assert.equal(send.status, 'in_progress', 'released back to what it was');
+  assert.deepEqual(moved.map((m) => [m.from, m.to]), [['blocked', 'in_progress']]);
+  applyStatus(doc, 'in_progress');                   // the blocker is reopened
+  syncBlocked(tr);
+  assert.equal(send.status, 'blocked', 'and blocked again');
+  assert.deepEqual(syncBlocked(tr), [], 'idempotent');
+});
+
+test('sync never touches finished work or a Blocked task with nothing picked', () => {
+  const lone = task({ id: 'lone', status: 'blocked' });
+  const done = task({ id: 'done', status: 'done', blocked_by_tasks: ['x'] });
+  const x = task({ id: 'x' });
+  const tr = trackerOf([lone, done, x]);
+  assert.deepEqual(syncBlocked(tr), []);
+  assert.equal(lone.status, 'blocked');
+  assert.equal(done.status, 'done');
 });
 
 console.log('\nseed dependencies');
@@ -423,7 +428,7 @@ test('every investor send links the doc tasks it needs', () => {
   const deps = (s) => byTitle(s).blocked_by_tasks.map((id) => seed.tracker.tasks.find((t) => t.id === id).title).sort();
   assert.deepEqual(deps('Proxima'), ['Technical docs without NDA']);
   assert.deepEqual(deps('Avantis'), ['Technical docs without NDA']);
-  assert.equal(byTitle('Avantis').blocked_by, 'Venue integration doc', 'what isn\'t a task stays as text');
+  assert.ok(!('blocked_by' in byTitle('Avantis')), 'no free-text reasons remain');
   assert.deepEqual(deps('Galaxy'), ['Technical docs with NDA', 'Technical docs without NDA']);
   assert.deepEqual(deps('DWF'), ['Lender pool return simulation', 'Technical docs with NDA', 'Technical docs without NDA']);
   assert.equal(deps('MH Ventures').length, 3);
@@ -441,15 +446,14 @@ test('Nam and Asad each see the five sends they are holding up', () => {
     ['Technical docs without NDA', 'Technical docs with NDA', 'Lender pool return simulation'], 'biggest hold-up first');
 });
 
-test('finishing the docs frees every send', () => {
-  const all = structuredClone(seed.tracker.tasks);
-  for (const t of all) if (['tt05', 'tt_docs_nda', 'tt_pool_sim', 'tt06'].includes(t.id)) t.status = 'done';
-  const byId = taskIndex(all);
-  const sends = all.filter((t) => t.id.startsWith('tt_send'));
-  assert.ok(sends.every((t) => openBlockers(t, byId).length === 0));
-  const g = blockedByDependency(sends, people, all);
-  assert.equal(g.ready.length, 4, 'marked Blocked with nothing left to wait on');
-  assert.equal(g.external.length, 1, 'Avantis still waits on the venue integration doc');
+test('finishing the docs frees every send, automatically', () => {
+  const tr = structuredClone(seed.tracker);
+  for (const t of tr.tasks) if (['tt05', 'tt_docs_nda', 'tt_pool_sim', 'tt06'].includes(t.id)) applyStatus(t, 'done');
+  const moved = syncBlocked(tr);
+  assert.equal(moved.length, 5, 'all five sends released');
+  assert.ok(tr.tasks.filter((t) => t.id.startsWith('tt_send')).every((t) => t.status === 'not_started'));
+  const g = blockedByDependency(tr.tasks);
+  assert.equal(g.people.length + g.unexplained.length, 0, 'nothing left blocked');
 });
 
 test('linking the investor dependencies is idempotent', () => {
