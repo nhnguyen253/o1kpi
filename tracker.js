@@ -11,7 +11,14 @@
  *   categories: [{ id, title, kpi_node_id }]
  *   projects:   [{ id, category_id, title }]
  *   tasks:      [{ id, project_id, title, owners: [contributor_id], due_date,
- *                  status, blocked_by, source, created_at, updated_at, done_at }]
+ *                  status, blocked_by, blocked_by_tasks: [task_id], source,
+ *                  created_at, updated_at, done_at }]
+ *
+ * Dependencies. `blocked_by_tasks` lists tasks that must be finished first;
+ * `blocked_by` stays free text for anything that isn't a task here. Being
+ * blocked is derived, not stored: a task is blocked if someone set its status
+ * to Blocked, OR it is waiting on a task that isn't done. The reverse — what a
+ * task is holding up — is what each owner sees on their own list.
  *
  * Dates. `due_date` is a calendar date, 'YYYY-MM-DD', exactly what an
  * <input type="date"> produces. It is compared as a string against today's
@@ -102,9 +109,53 @@ export function index(tracker) {
   const proj = new Map(tracker.projects.map((p) => [p.id, p]));
   return {
     cat, proj,
+    task: new Map(tracker.tasks.map((t) => [t.id, t])),
     categoryOf: (t) => cat.get(proj.get(t.project_id)?.category_id),
     projectOf: (t) => proj.get(t.project_id),
   };
+}
+
+// ---------------------------------------------------------------- dependencies
+
+export const taskIndex = (tasks) => new Map(tasks.map((t) => [t.id, t]));
+
+/** The unfinished tasks `t` is waiting on. A finished blocker blocks nothing. */
+export function openBlockers(t, byId) {
+  return (t.blocked_by_tasks ?? []).map((id) => byId.get(id)).filter((b) => b && isOpen(b));
+}
+
+/** Blocked because someone said so, or because it waits on unfinished work. */
+export function isBlocked(t, byId) {
+  return isOpen(t) && (t.status === 'blocked' || openBlockers(t, byId).length > 0);
+}
+
+/** Open tasks that can't move until `t` is done. Nothing, once `t` is done. */
+export function blocking(t, tasks) {
+  if (isDone(t)) return [];
+  return tasks.filter((x) => isOpen(x) && (x.blocked_by_tasks ?? []).includes(t.id));
+}
+
+/** Everything waiting on `id`, directly or down a chain. */
+export function dependentsOf(tasks, id) {
+  const out = new Set();
+  (function walk(tid) {
+    for (const x of tasks) {
+      if ((x.blocked_by_tasks ?? []).includes(tid) && !out.has(x.id)) { out.add(x.id); walk(x.id); }
+    }
+  })(id);
+  return out;
+}
+
+/** Delete tasks and scrub them from every other task's waiting-on list. */
+export function removeTasks(tracker, ids) {
+  const gone = new Set(ids);
+  tracker.tasks = tracker.tasks.filter((t) => !gone.has(t.id));
+  for (const t of tracker.tasks) {
+    if (t.blocked_by_tasks?.some((id) => gone.has(id))) {
+      t.blocked_by_tasks = t.blocked_by_tasks.filter((id) => !gone.has(id));
+    }
+  }
+  return tracker;
 }
 
 export const projectsIn = (tracker, categoryId) =>
@@ -157,6 +208,40 @@ export function bucketByDue(tasks, today) {
   return out;
 }
 
+/**
+ * A person's list, most urgent first. First match wins:
+ *
+ *   holding — unfinished work other tasks are waiting on. Leads the list,
+ *             biggest hold-up first: it is what unblocks other people.
+ *   overdue / week / later / undated — actionable work, by due date.
+ *   waiting — blocked, so nothing to do yet. Still shown, never hidden.
+ *   done
+ */
+export function bucketMine(tasks, today, allTasks) {
+  const byId = taskIndex(allTasks);
+  const { end } = weekBounds(today);
+  const out = { holding: [], overdue: [], week: [], later: [], undated: [], waiting: [], done: [] };
+  for (const t of sortByDue(tasks)) {
+    if (isDone(t)) out.done.push(t);
+    else if (blocking(t, allTasks).length) out.holding.push(t);
+    else if (isBlocked(t, byId)) out.waiting.push(t);
+    else if (!t.due_date) out.undated.push(t);
+    else if (t.due_date < today) out.overdue.push(t);
+    else if (t.due_date <= end) out.week.push(t);
+    else out.later.push(t);
+  }
+  // Stable sort: equal hold-ups keep their due-date order.
+  out.holding.sort((a, b) => blocking(b, allTasks).length - blocking(a, allTasks).length);
+  return out;
+}
+
+/** Distinct open tasks held up by any of `mine` that isn't finished. */
+export function heldUpBy(mine, allTasks) {
+  const held = new Map();
+  for (const t of mine) for (const x of blocking(t, allTasks)) held.set(x.id, x);
+  return [...held.values()];
+}
+
 // ---------------------------------------------------------------- views
 
 /**
@@ -194,23 +279,41 @@ export function mentionedContributors(text, contributors, except = []) {
 }
 
 /**
- * Blocked work grouped by what it is waiting on — which is the point of this
- * view: it surfaces dependencies between people. A task naming a teammate in
- * its blocked-by text files under that teammate (under each, if it names
- * several). Anything else is external; an empty reason is its own group,
- * because "blocked, won't say on what" is itself worth chasing.
+ * Blocked work grouped by who it is waiting on — which is the point of this
+ * view: it surfaces dependencies between people. The people come from the
+ * owners of the unfinished tasks it waits on, plus any teammate named in its
+ * free-text reason (under each, if several). Anything else is "something
+ * else". Two groups need chasing in their own right:
+ *
+ *   unexplained — Blocked, with no reason and nothing linked.
+ *   ready       — still marked Blocked, but everything it waited on is done.
+ *
+ * `allTasks` is the whole tracker: a blocker can sit outside the filtered view.
  */
-export function blockedByDependency(tasks, contributors) {
+export function blockedByDependency(tasks, contributors, allTasks = tasks) {
+  const byId = taskIndex(allTasks);
   const people = new Map();
   const external = [];
   const unexplained = [];
-  for (const t of tasks.filter((x) => x.status === 'blocked')) {
-    if (!t.blocked_by?.trim()) { unexplained.push(t); continue; }
-    const named = mentionedContributors(t.blocked_by, contributors, t.owners ?? []);
-    if (!named.length) { external.push(t); continue; }
-    for (const c of named) {
-      if (!people.has(c.id)) people.set(c.id, []);
-      people.get(c.id).push(t);
+  const ready = [];
+  for (const t of tasks.filter((x) => isBlocked(x, byId))) {
+    const owners = t.owners ?? [];
+    const blockers = openBlockers(t, byId);
+    const named = [...new Set([
+      ...blockers.flatMap((b) => b.owners ?? []),
+      ...mentionedContributors(t.blocked_by, contributors).map((c) => c.id),
+    ])].filter((id) => !owners.includes(id));
+    if (named.length) {
+      for (const id of named) {
+        if (!people.has(id)) people.set(id, []);
+        people.get(id).push(t);
+      }
+    } else if (t.blocked_by?.trim() || blockers.length) {
+      external.push(t);
+    } else if ((t.blocked_by_tasks ?? []).length) {
+      ready.push(t);
+    } else {
+      unexplained.push(t);
     }
   }
   return {
@@ -219,6 +322,7 @@ export function blockedByDependency(tasks, contributors) {
       .sort((a, b) => b.tasks.length - a.tasks.length),
     external,
     unexplained,
+    ready,
   };
 }
 
@@ -281,6 +385,19 @@ export function validateTracker(tracker, contributorIds = null) {
       for (const o of t.owners ?? []) {
         if (!contributorIds.includes(o)) problems.push(`task ${t.id} has unknown owner ${o}`);
       }
+    }
+  }
+  const taskIds = new Set(tracker.tasks.map((t) => t.id));
+  for (const t of tracker.tasks) {
+    for (const b of t.blocked_by_tasks ?? []) {
+      if (b === t.id) problems.push(`task ${t.id} waits on itself`);
+      else if (!taskIds.has(b)) problems.push(`task ${t.id} waits on unknown task ${b}`);
+    }
+  }
+  // A cycle means none of its tasks can ever start.
+  for (const t of tracker.tasks) {
+    if ((t.blocked_by_tasks ?? []).some((b) => b !== t.id) && dependentsOf(tracker.tasks, t.id).has(t.id)) {
+      problems.push(`task ${t.id} is in a waiting-on cycle`);
     }
   }
   return problems;

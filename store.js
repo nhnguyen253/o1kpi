@@ -72,7 +72,14 @@ function normalize(db) {
     t.categories ??= [];
     t.projects ??= [];
     t.tasks ??= [];
-    for (const task of t.tasks) task.owners ??= [];
+    // Drop links to tasks that no longer exist. An older cached copy of the
+    // app deletes tasks without scrubbing them from others' waiting-on lists,
+    // and one dangling link would otherwise fail validation on every save.
+    const ids = new Set(t.tasks.map((x) => x.id));
+    for (const task of t.tasks) {
+      task.owners ??= [];
+      task.blocked_by_tasks = (task.blocked_by_tasks ?? []).filter((id) => ids.has(id) && id !== task.id);
+    }
   }
   return db;
 }

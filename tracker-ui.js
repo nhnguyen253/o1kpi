@@ -14,8 +14,8 @@ import { buildTree } from './rollup.js';
 import {
   STATUSES, STATUS_LABEL, localDate, parseDate, daysBetween, addDays, weekBounds,
   isDone, isOpen, isOverdue, applyStatus, index, projectsIn, filterTasks, sortByDue,
-  bucketByDue, overdueByOwner, blockedByDependency, weeklyRollup, weeklyByOwner,
-  validateTracker,
+  bucketMine, heldUpBy, overdueByOwner, blockedByDependency, weeklyRollup, weeklyByOwner,
+  openBlockers, isBlocked, blocking, dependentsOf, removeTasks, validateTracker,
 } from './tracker.js';
 
 const PREFS_KEY = 'o1kpi_tracker_v1';
@@ -132,12 +132,34 @@ export function mountTracker(h) {
         `<option value="${s}" ${s === t.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select>`;
   }
 
-  function blockedNote(t) {
+  /** What `t` is waiting on: linked tasks first, then the free-text reason. */
+  function waitingNote(t) {
+    if (isDone(t)) return '';
+    const blockers = openBlockers(t, ix.task);
+    const text = t.blocked_by?.trim();
+    if (blockers.length) {
+      const named = blockers.map((b) => `${esc(b.title)} (${esc(ownerNames(b.owners))})`);
+      return `<span class="tk-blocked" title="${esc(blockers.map((b) => b.title).join('\n'))}">Waiting on: ${
+        named.slice(0, 2).join(', ')}${named.length > 2 ? ` +${named.length - 2} more` : ''}${text ? ` · also ${esc(text)}` : ''}</span>`;
+    }
     if (t.status !== 'blocked') return '';
-    return t.blocked_by?.trim()
-      ? `<span class="tk-blocked">Blocked on: ${esc(t.blocked_by)}</span>`
-      : '<span class="tk-blocked">Blocked — reason not given</span>';
+    if (text) return `<span class="tk-blocked">Blocked on: ${esc(text)}</span>`;
+    if ((t.blocked_by_tasks ?? []).length) return '<span class="tk-ready">Ready — everything it waited on is done</span>';
+    return '<span class="tk-blocked">Blocked — reason not given</span>';
   }
+
+  /** What can't move until `t` is done — the line its owner needs to see. */
+  function holdingLine(t) {
+    const held = blocking(t, tr().tasks);
+    if (!held.length) return '';
+    const who = ownerNames([...new Set(held.flatMap((x) => x.owners ?? []))]);
+    return `<div class="tk-holding" title="${esc(held.map((x) => x.title).join('\n'))}">Holding up ${held.length} task${
+      held.length === 1 ? '' : 's'} for ${esc(who)}: ${held.map((x) => esc(x.title)).join(' · ')}</div>`;
+  }
+
+  /** A task can be blocked by a link while its status still says Not started. Say so. */
+  const blockedTag = (t) => (isBlocked(t, ix.task) && t.status !== 'blocked'
+    ? ' <span class="tk-tag late">Blocked</span>' : '');
 
   /**
    * One task. `hideOwner` drops the person a view is already about, so their
@@ -156,22 +178,24 @@ export function mountTracker(h) {
         owners.map((id) => esc(person(id).name)).join(', '),
         `<span class="tk-due-inline ${due.cls}" title="${esc(due.title)}">${esc(due.text)}</span>`,
         o.tag ? `<span class="tk-tag ${o.tag[0]}">${esc(o.tag[1])}</span>` : '',
-        blockedNote(t),
+        waitingNote(t),
       ].filter(Boolean).join(' · ');
       return `${open}${statusSelect(t)}
-        <div class="tk-main"><div class="tk-title">${esc(t.title)}</div><div class="tk-meta">${meta}</div></div>
+        <div class="tk-main"><div class="tk-title">${esc(t.title)}${blockedTag(t)}</div>
+          <div class="tk-meta">${meta}</div>${holdingLine(t)}</div>
       </div>`;
     }
 
     const meta = [
       !o.hidePath && cat && proj ? `${esc(cat.title)} › ${esc(proj.title)}` : '',
       t.source ? `from ${esc(t.source)}` : '',
-      blockedNote(t),
+      waitingNote(t),
     ].filter(Boolean).join(' · ');
     return `${open}${statusSelect(t)}
       <div class="tk-main">
-        <div class="tk-title">${esc(t.title)}</div>
+        <div class="tk-title">${esc(t.title)}${blockedTag(t)}</div>
         ${meta ? `<div class="tk-meta">${meta}</div>` : ''}
+        ${holdingLine(t)}
       </div>
       <div class="tk-owners">${o.hideOwner && owners.length ? '<span class="muted">with</span> ' : ''}${
         // Real spaces between items: flex ignores them for layout, but without
@@ -215,7 +239,7 @@ export function mountTracker(h) {
     const badges = {
       mine: me ? filterTasks(tr(), { category: prefs.category, project: prefs.project, owner: me, status: 'open' }).length : null,
       overdue: scoped.filter((x) => isOverdue(x, t)).length,
-      blocked: scoped.filter((x) => x.status === 'blocked').length,
+      blocked: scoped.filter((x) => isBlocked(x, ix.task)).length,
     };
     const tone = { overdue: 'alert', blocked: 'warn' };
     $('tkTabs').innerHTML = VIEWS.map(([v, label]) => {
@@ -285,12 +309,16 @@ export function mountTracker(h) {
     const all = filterTasks(tr(), { ...f, status: '' });     // stats ignore the status filter
     const shown = filterTasks(tr(), f);
     const openAll = all.filter(isOpen);
+    const everything = tr().tasks;
+    const held = heldUpBy(openAll, everything);
     const { end } = weekBounds(t);
     const stats = [
       ['Open', openAll.length, ''],
       ['Overdue', openAll.filter((x) => isOverdue(x, t)).length, 'alert'],
       ['Due this week', openAll.filter((x) => x.due_date && x.due_date >= t && x.due_date <= end).length, ''],
       ['No due date', openAll.filter((x) => !x.due_date).length, ''],
+      ['Blocked', openAll.filter((x) => isBlocked(x, ix.task)).length, 'warn'],
+      ['Holding up', held.length, 'warn'],
     ];
     const statsHtml = `<div class="tk-stats">${stats.map(([label, v, tone]) => `
       <div class="tk-stat ${v && tone ? tone : ''}"><div class="label">${label}</div><div class="value">${v}</div></div>`).join('')}</div>`;
@@ -299,12 +327,20 @@ export function mountTracker(h) {
     const addBtn = `<button type="button" class="btn" data-tk-new-task="" data-tk-owner="${esc(me)}">+ Task for ${name}</button>`;
     if (!all.length) return statsHtml + emptyHtml(`Nothing assigned to ${name}`, '', addBtn);
 
-    const b = bucketByDue(shown, t);
+    // Say plainly who is waiting, before the list — this is what the view is for.
+    const waitingOnMe = ownerNames([...new Set(held.flatMap((x) => x.owners ?? []))].filter((id) => id !== me));
+    const holdingCallout = held.length ? `<div class="callout tk-callout warn">${
+      me === actorId() ? 'Your unfinished work is' : `${name}'s unfinished work is`} holding up ${held.length} task${held.length === 1 ? '' : 's'}${
+      waitingOnMe ? ` for ${esc(waitingOnMe)}` : ''}. Those come first below.</div>` : '';
+
+    const b = bucketMine(shown, t, everything);
     const sections = [
+      ['Holding others up', b.holding, 'warn', 'Others can’t move until these are done.'],
       ['Overdue', b.overdue, 'alert', ''],
       ['Due this week', b.week, '', ''],
       ['Later', b.later, '', ''],
       ['No due date', b.undated, '', 'Give these a date, or they can never show up as overdue.'],
+      ['Waiting on others', b.waiting, '', 'Blocked — nothing to do until what they wait on is done.'],
       ['Done', b.done, '', ''],
     ].filter(([, list]) => list.length)
       .map(([title, list, tone, hint]) =>
@@ -313,8 +349,8 @@ export function mountTracker(h) {
     const hiddenDone = prefs.status === 'open' ? all.filter(isDone).length : 0;
     const foot = hiddenDone
       ? `<div class="tk-foot"><button type="button" class="tk-clear" data-tk-showdone>Show ${hiddenDone} done</button></div>` : '';
-    if (!sections.length) return statsHtml + emptyHtml('Nothing matches these filters', '', foot);
-    return `${statsHtml}<div class="card">${sections.join('')}${foot}</div>`;
+    if (!sections.length) return statsHtml + holdingCallout + emptyHtml('Nothing matches these filters', '', foot);
+    return `${statsHtml}${holdingCallout}<div class="card">${sections.join('')}${foot}</div>`;
   }
 
   function overdueHtml() {
@@ -328,10 +364,10 @@ export function mountTracker(h) {
 
   function blockedHtml() {
     const tasks = filterTasks(tr(), filtersFor('blocked'));
-    const g = blockedByDependency(tasks, people());
-    if (!g.people.length && !g.external.length && !g.unexplained.length) {
+    const g = blockedByDependency(tasks, people(), tr().tasks);
+    if (!g.people.length && !g.external.length && !g.unexplained.length && !g.ready.length) {
       return emptyHtml('Nothing is blocked',
-        'When something is blocked, say what it’s waiting on. Name a teammate and it lands under them here.');
+        'When something can’t move, link the task it’s waiting on — or name a teammate — and it lands under them here.');
     }
     const sections = [
       ...g.people.map((p) => groupHtml(
@@ -339,6 +375,8 @@ export function mountTracker(h) {
       g.external.length ? groupHtml(`Waiting on something else ${count(g.external.length)}`, rows(g.external)) : '',
       g.unexplained.length ? groupHtml(`Reason not given ${count(g.unexplained.length)}`, rows(g.unexplained),
         { tone: 'warn', hint: 'Say what these are waiting on, so the right person sees them.' }) : '',
+      g.ready.length ? groupHtml(`Ready to unblock ${count(g.ready.length)}`, rows(g.ready),
+        { hint: 'Everything these waited on is done. Move them on.' }) : '',
     ].filter(Boolean);
     return `<div class="card">${sections.join('')}</div>`;
   }
@@ -484,7 +522,7 @@ export function mountTracker(h) {
       const before = task.status;
       if (before === status) return [];
       applyStatus(task, status);
-      needsReason = status === 'blocked' && !task.blocked_by?.trim();
+      needsReason = status === 'blocked' && !task.blocked_by?.trim() && !(task.blocked_by_tasks ?? []).length;
       return [{ node_id: task.id, node_title: task.title, field: 'task status',
         old_value: STATUS_LABEL[before], new_value: STATUS_LABEL[status] }];
     });
@@ -505,6 +543,8 @@ export function mountTracker(h) {
     push('task due', before.due_date || 'none', after.due_date || 'none');
     push('task status', STATUS_LABEL[before.status], STATUS_LABEL[after.status]);
     push('task blocked by', before.blocked_by, after.blocked_by);
+    const titles = (ids) => (ids ?? []).map((id) => tr().tasks.find((x) => x.id === id)?.title ?? id).sort().join(', ');
+    push('task waiting on', titles(before.blocked_by_tasks), titles(after.blocked_by_tasks));
     push('task source', before.source, after.source);
     return out;
   }
@@ -542,10 +582,23 @@ export function mountTracker(h) {
     }
     const me = minePerson();
     const task = existing ?? {
-      title: '', status: 'not_started', due_date: '', blocked_by: '', source: '',
+      title: '', status: 'not_started', due_date: '', blocked_by: '', blocked_by_tasks: [], source: '',
       project_id: opts.project_id || prefs.project || t.projects[0].id,
       owners: opts.owners ?? (me ? [me] : []),
     };
+
+    // What this can wait on: anything but itself and whatever already waits on
+    // it (a loop would mean neither could ever start). Finished tasks drop out
+    // unless already linked, so the list stays about work still in flight.
+    const linked = new Set(task.blocked_by_tasks ?? []);
+    const excluded = existing ? new Set([existing.id, ...dependentsOf(t.tasks, existing.id)]) : new Set();
+    const catOrder = new Map(t.categories.map((c, i) => [c.id, i]));
+    const candidates = t.tasks
+      .filter((x) => !excluded.has(x.id) && (isOpen(x) || linked.has(x.id)))
+      .sort((a, b) => (catOrder.get(ix.categoryOf(a)?.id) ?? 99) - (catOrder.get(ix.categoryOf(b)?.id) ?? 99)
+        || (ix.projectOf(a)?.title ?? '').localeCompare(ix.projectOf(b)?.title ?? '')
+        || a.title.localeCompare(b.title));
+    const heldUp = existing ? blocking(existing, t.tasks) : [];
 
     const projOptions = t.categories.map((c) => {
       const ps = projectsIn(t, c.id);
@@ -574,25 +627,39 @@ export function mountTracker(h) {
         <div class="field"><label>Status</label><select id="tkStatus">${STATUSES.map((s) =>
           `<option value="${s}" ${s === task.status ? 'selected' : ''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div>
       </div>
-      <div class="field"><label>Blocked by</label>
-        <input id="tkBlocked" value="${esc(task.blocked_by)}" placeholder="What is it waiting on?">
+      ${heldUp.length ? `<div class="field"><label>Holding up</label>
+        <div class="tk-held">${heldUp.map((x) => `<div><span>${esc(x.title)}</span>
+          <span class="muted">${esc(ownerNames(x.owners))}</span></div>`).join('')}</div>
+        <div class="readout">These can’t move until this is done.</div></div>` : ''}
+      <div class="field"><label>Waiting on</label>
+        <div class="tk-deps">${candidates.map((x) => `
+          <label class="check"><input type="checkbox" value="${esc(x.id)}" ${linked.has(x.id) ? 'checked' : ''}>
+            <span><span>${esc(x.title)}</span><span class="muted">${esc(ownerNames(x.owners))} · ${
+              STATUS_LABEL[x.status]} · ${esc(ix.categoryOf(x)?.title ?? '')}</span></span></label>`).join('')
+          || '<div class="tk-none">No other open tasks.</div>'}</div>
+        <div class="readout">Tick what has to be finished first. Its owners see this on their list as work they’re holding up.</div></div>
+      <div class="field"><label>Also blocked by</label>
+        <input id="tkBlocked" value="${esc(task.blocked_by)}" placeholder="Anything that isn’t a task here — e.g. a venue integration doc">
         <div class="readout" id="tkBlockedHint"></div></div>
       <div class="field"><label>Source</label>
         <input id="tkSource" value="${esc(task.source)}" placeholder="Where it came from — e.g. Sep 4 standup, BAM call"></div>
       <button class="btn primary" id="tkSaveBtn">${existing ? 'Save changes' : 'Create task'}</button>
       <div class="readout" id="tkMsg"></div>
       ${stamps ? `<div class="readout">${esc(stamps)}</div>` : ''}
-      ${existing ? '<div class="struct"><button class="btn danger" id="tkDeleteBtn">Delete task</button></div>' : ''}`);
+      ${existing ? `<div class="struct"><button class="btn danger" id="tkDeleteBtn">Delete task${
+        heldUp.length ? ` (${heldUp.length} waiting on it)` : ''}</button></div>` : ''}`);
 
+    const depsTicked = () => [...$('drawerBody').querySelectorAll('.tk-deps input:checked')].map((i) => i.value);
     const hint = () => {
       const blocked = $('tkStatus').value === 'blocked';
-      const empty = !$('tkBlocked').value.trim();
+      const empty = !$('tkBlocked').value.trim() && !depsTicked().length;
       $('tkBlockedHint').textContent = blocked && empty
-        ? 'Say what it’s waiting on. Name a teammate and it shows up under them in the Blocked view.'
-        : blocked ? '' : 'Only shown while the task is blocked.';
+        ? 'Say what it’s waiting on — tick a task above, or describe it here. Name a teammate and it shows up under them.'
+        : 'For blockers that aren’t tasks. Naming a teammate routes it to them in the Blocked view.';
     };
     $('tkStatus').onchange = hint;
     $('tkBlocked').oninput = hint;
+    $('drawerBody').querySelector('.tk-deps').onchange = hint;
     hint();
     if (opts.focus) setTimeout(() => $(opts.focus)?.focus(), 240);   // after the drawer slides in
     else if (!existing) setTimeout(() => $('tkTitle')?.focus(), 240);
@@ -608,6 +675,7 @@ export function mountTracker(h) {
         project_id: $('tkProject').value,
         due_date: $('tkDue').value,
         blocked_by: $('tkBlocked').value.trim(),
+        blocked_by_tasks: depsTicked(),
         source: $('tkSource').value.trim(),
       };
       const status = $('tkStatus').value;
@@ -642,10 +710,10 @@ export function mountTracker(h) {
     };
 
     if (existing) {
-      armDelete('tkDeleteBtn', 'Delete task', () => commit((tt) => {
-        const i = tt.tasks.findIndex((x) => x.id === existing.id);
-        if (i < 0) return [];
-        const [removed] = tt.tasks.splice(i, 1);
+      armDelete('tkDeleteBtn', $('tkDeleteBtn').textContent, () => commit((tt) => {
+        const removed = tt.tasks.find((x) => x.id === existing.id);
+        if (!removed) return [];
+        removeTasks(tt, [removed.id]);        // and off every waiting-on list
         return [{ node_id: removed.id, node_title: removed.title, field: 'task deleted',
           old_value: STATUS_LABEL[removed.status], new_value: '' }];
       }));
@@ -699,7 +767,7 @@ export function mountTracker(h) {
     if (existing) {
       const label = $('tkProjDelete').textContent;
       armDelete('tkProjDelete', label, () => commit((tt) => {
-        tt.tasks = tt.tasks.filter((x) => x.project_id !== existing.id);
+        removeTasks(tt, tt.tasks.filter((x) => x.project_id === existing.id).map((x) => x.id));
         tt.projects = tt.projects.filter((p) => p.id !== existing.id);
         return [{ node_id: existing.id, node_title: existing.title, field: 'project deleted',
           old_value: `${taskCount} tasks`, new_value: '' }];
@@ -772,7 +840,7 @@ export function mountTracker(h) {
     if (existing) {
       const label = $('tkCatDelete').textContent;
       armDelete('tkCatDelete', label, () => commit((tt) => {
-        tt.tasks = tt.tasks.filter((x) => !projIds.has(x.project_id));
+        removeTasks(tt, tt.tasks.filter((x) => projIds.has(x.project_id)).map((x) => x.id));
         tt.projects = tt.projects.filter((p) => p.category_id !== existing.id);
         tt.categories = tt.categories.filter((c) => c.id !== existing.id);
         return [{ node_id: existing.id, node_title: existing.title, field: 'category deleted',

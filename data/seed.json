@@ -1207,7 +1207,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt02",
@@ -1222,7 +1223,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt03",
@@ -1237,7 +1239,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt04",
@@ -1253,7 +1256,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt05",
@@ -1269,7 +1273,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt06",
@@ -1284,7 +1289,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt07",
@@ -1299,7 +1305,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt08",
@@ -1314,7 +1321,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt09",
@@ -1329,7 +1337,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt10",
@@ -1344,7 +1353,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt11",
@@ -1359,7 +1369,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt12",
@@ -1374,7 +1385,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt13",
@@ -1389,7 +1401,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt14",
@@ -1404,7 +1417,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt15",
@@ -1419,7 +1433,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt_docs_nda",
@@ -1435,7 +1450,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt_pool_sim",
@@ -1450,7 +1466,8 @@
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": []
       },
       {
         "id": "tt_send1",
@@ -1461,11 +1478,14 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "Technical docs without NDA (Asad, Nam)",
+        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": [
+          "tt05"
+        ]
       },
       {
         "id": "tt_send2",
@@ -1476,11 +1496,14 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "Technical docs (Asad, Nam) and a venue integration doc",
+        "blocked_by": "Venue integration doc",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": [
+          "tt05"
+        ]
       },
       {
         "id": "tt_send3",
@@ -1491,11 +1514,15 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "All technical docs, with and without NDA (Asad, Nam)",
+        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": [
+          "tt05",
+          "tt_docs_nda"
+        ]
       },
       {
         "id": "tt_send4",
@@ -1506,11 +1533,16 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "All technical docs (Asad, Nam) and the lender pool return simulation (Nam)",
+        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": [
+          "tt05",
+          "tt_docs_nda",
+          "tt_pool_sim"
+        ]
       },
       {
         "id": "tt_send5",
@@ -1521,11 +1553,16 @@
         ],
         "due_date": "",
         "status": "blocked",
-        "blocked_by": "Technical docs with NDA (Asad, Nam), the lender pool return simulation (Nam) and the NDA",
+        "blocked_by": "",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",
-        "done_at": ""
+        "done_at": "",
+        "blocked_by_tasks": [
+          "tt_docs_nda",
+          "tt_pool_sim",
+          "tt06"
+        ]
       }
     ]
   }

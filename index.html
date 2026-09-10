@@ -925,7 +925,7 @@ textarea {
 
 .tk-stats {
   display:grid;
-  grid-template-columns:repeat(4, minmax(0,1fr));
+  grid-template-columns:repeat(6, minmax(0,1fr));
   gap:10px;
   margin-bottom:14px;
 }
@@ -945,6 +945,8 @@ textarea {
 }
 .tk-stat.alert { border-color:#5c2d31; }
 .tk-stat.alert .value { color:#ef9aa0; }
+.tk-stat.warn { border-color:#5a4520; }
+.tk-stat.warn .value { color:#e5c07b; }
 
 .tk-card + .tk-card, .tk-cols + *, .card + .tk-callout { margin-top:14px; }
 .tk-group + .tk-group { margin-top:20px; }
@@ -1003,6 +1005,44 @@ textarea {
   white-space:nowrap;
 }
 .tk-blocked { color:#e5c07b; }
+.tk-ready { color:#7fd7a4; }
+/* the line an owner needs to see: other work waits on this */
+.tk-holding {
+  margin-top:4px;
+  color:#ef9aa0;
+  font-size:11px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tk-row.compact .tk-holding { white-space:normal; }
+.callout.warn {
+  border-left-color:#e5c07b;
+  background:rgba(224,168,74,.10);
+  color:#f0d9a8;
+}
+.tk-callout.warn { margin:0 0 14px; }
+.tk-deps {
+  display:grid;
+  gap:6px;
+  max-height:240px;
+  overflow:auto;
+  padding-right:4px;
+}
+.tk-deps .check { align-items:flex-start; }
+.tk-deps .check input { margin-top:3px; }
+.tk-deps .check > span { display:flex; flex-direction:column; gap:2px; min-width:0; font-size:12px; }
+.tk-held { display:grid; gap:6px; }
+.tk-held > div {
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  border:1px solid #5c2d31;
+  border-radius:10px;
+  background:rgba(239,107,115,.06);
+  font-size:12px;
+}
 .tk-owners {
   display:flex;
   align-items:center;
@@ -1089,6 +1129,7 @@ button.chip.tk-kpi:hover { border-color:rgba(123,140,255,.45); color:#e3e6ff; }
 
 @media (max-width: 1024px) {
   .tk-cols { grid-template-columns:1fr; }
+  .tk-stats { grid-template-columns:repeat(3, minmax(0,1fr)); }
 }
 @media (max-width: 860px) {
   .tk-stats { grid-template-columns:repeat(2, minmax(0,1fr)); }

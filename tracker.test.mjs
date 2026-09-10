@@ -11,7 +11,9 @@ import {
   isOverdue, daysOverdue, applyStatus, filterTasks, sortByDue, bucketByDue,
   overdueByOwner, mentionedContributors, blockedByDependency,
   weeklyRollup, weeklyByOwner, validateTracker, STATUSES,
+  taskIndex, openBlockers, isBlocked, blocking, dependentsOf, removeTasks, bucketMine, heldUpBy,
 } from './tracker.js';
+import { linkInvestorDeps } from './tracker-deps.mjs';
 import { recategorise } from './tracker-recategorise.mjs';
 import { applyInvestorPlan } from './tracker-investors.mjs';
 
@@ -266,7 +268,9 @@ test('the seed invents nothing: no dates, no sources, and only declared blocks',
     assert.equal(t.due_date, '', `${t.title} has an invented due date`);
     assert.equal(t.source, '', `${t.title} has an invented source`);
     assert.ok(['not_started', 'blocked'].includes(t.status), `${t.title} has an invented status`);
-    if (t.status === 'blocked') assert.ok(t.blocked_by.trim(), `${t.title} is blocked without saying on what`);
+    if (t.status === 'blocked') {
+      assert.ok(t.blocked_by.trim() || t.blocked_by_tasks.length, `${t.title} is blocked without saying on what`);
+    }
   }
 });
 
@@ -341,6 +345,116 @@ test('recategorising reuses a same-named category, keeps extras last, and is ide
 
 test('the status list matches the KPI tree\'s', () => {
   assert.deepEqual(STATUSES, ['not_started', 'in_progress', 'blocked', 'done']);
+});
+
+console.log('\ndependencies');
+
+test('a task is blocked by an unfinished blocker, and freed when it is done', () => {
+  const doc = task({ id: 'doc', owners: ['nam'] });
+  const send = task({ id: 'send', owners: ['ethan'], blocked_by_tasks: ['doc'] });
+  const all = [doc, send];
+  assert.ok(isBlocked(send, taskIndex(all)), 'blocked by a link, though its status says Not started');
+  assert.deepEqual(blocking(doc, all), [send], 'and the doc knows what it holds up');
+  doc.status = 'done';
+  assert.ok(!isBlocked(send, taskIndex(all)), 'a finished blocker blocks nothing');
+  assert.deepEqual(blocking(doc, all), [], 'a finished task holds nothing up');
+  assert.deepEqual(openBlockers(send, taskIndex(all)), []);
+});
+
+test('a status of Blocked still counts, with or without links', () => {
+  assert.ok(isBlocked(task({ status: 'blocked' }), new Map()));
+  assert.ok(!isBlocked(task({ status: 'done', blocked_by_tasks: ['x'] }), new Map()), 'done is never blocked');
+});
+
+test('dependents are found down a chain', () => {
+  const all = [task({ id: 'a' }), task({ id: 'b', blocked_by_tasks: ['a'] }), task({ id: 'c', blocked_by_tasks: ['b'] })];
+  assert.deepEqual([...dependentsOf(all, 'a')].sort(), ['b', 'c']);
+});
+
+test('validation refuses self-links, dangling links and loops', () => {
+  const selfy = trackerOf([task({ id: 's', blocked_by_tasks: ['s'] })]);
+  assert.ok(validateTracker(selfy).some((p) => p.includes('waits on itself')));
+  const dangling = trackerOf([task({ id: 'd', blocked_by_tasks: ['ghost'] })]);
+  assert.ok(validateTracker(dangling).some((p) => p.includes('unknown task ghost')));
+  const loop = trackerOf([task({ id: 'a', blocked_by_tasks: ['b'] }), task({ id: 'b', blocked_by_tasks: ['a'] })]);
+  assert.ok(validateTracker(loop).some((p) => p.includes('cycle')));
+});
+
+test('deleting a task takes it off every waiting-on list', () => {
+  const tr = trackerOf([task({ id: 'doc' }), task({ id: 'send', blocked_by_tasks: ['doc', 'other'] }), task({ id: 'other' })]);
+  removeTasks(tr, ['doc']);
+  assert.deepEqual(tr.tasks.map((t) => t.id), ['send', 'other']);
+  assert.deepEqual(tr.tasks[0].blocked_by_tasks, ['other']);
+  assert.deepEqual(validateTracker(tr), []);
+});
+
+test('my list leads with what holds others up and ends with what waits on others', () => {
+  const big = task({ id: 'big', title: 'big', owners: ['nam'] });
+  const small = task({ id: 'small', title: 'small', owners: ['nam'], due_date: '2026-09-01' });
+  const plain = task({ id: 'plain', title: 'plain', owners: ['nam'], due_date: TODAY });
+  const stuck = task({ id: 'stuck', title: 'stuck', owners: ['nam'], blocked_by_tasks: ['x'] });
+  const x = task({ id: 'x', owners: ['asad'] });
+  const others = [1, 2, 3].map((i) => task({ id: `o${i}`, owners: ['ethan'], blocked_by_tasks: i < 3 ? ['big'] : ['small'] }));
+  const all = [big, small, plain, stuck, x, ...others];
+  const b = bucketMine([big, small, plain, stuck], TODAY, all);
+  assert.deepEqual(b.holding.map((t) => t.title), ['big', 'small'], 'biggest hold-up first, even undated');
+  assert.deepEqual(b.overdue, [], 'an overdue task holding people up sits in holding');
+  assert.deepEqual(b.week.map((t) => t.title), ['plain']);
+  assert.deepEqual(b.waiting.map((t) => t.title), ['stuck']);
+  assert.equal(heldUpBy([big, small], all).length, 3, 'distinct tasks held up');
+});
+
+test('the Blocked view routes by the blocker\'s owners, and flags ready work', () => {
+  const doc = task({ id: 'doc', owners: ['nam', 'asad'] });
+  const send = task({ id: 'send', owners: ['ethan'], blocked_by_tasks: ['doc'] });
+  const done = task({ id: 'done', owners: ['nam'], status: 'done' });
+  const stale = task({ id: 'stale', owners: ['ethan'], status: 'blocked', blocked_by_tasks: ['done'] });
+  const all = [doc, send, done, stale];
+  const g = blockedByDependency([send, stale], people, all);
+  const by = Object.fromEntries(g.people.map((p) => [p.contributor_id, p.tasks.map((t) => t.id)]));
+  assert.deepEqual(by, { nam: ['send'], asad: ['send'] });
+  assert.deepEqual(g.ready.map((t) => t.id), ['stale'], 'still marked Blocked, but its blocker is done');
+});
+
+console.log('\nseed dependencies');
+
+test('every investor send links the doc tasks it needs', () => {
+  const byTitle = (s) => seed.tracker.tasks.find((t) => t.title.includes(s));
+  const deps = (s) => byTitle(s).blocked_by_tasks.map((id) => seed.tracker.tasks.find((t) => t.id === id).title).sort();
+  assert.deepEqual(deps('Proxima'), ['Technical docs without NDA']);
+  assert.deepEqual(deps('Avantis'), ['Technical docs without NDA']);
+  assert.equal(byTitle('Avantis').blocked_by, 'Venue integration doc', 'what isn\'t a task stays as text');
+  assert.deepEqual(deps('Galaxy'), ['Technical docs with NDA', 'Technical docs without NDA']);
+  assert.deepEqual(deps('DWF'), ['Lender pool return simulation', 'Technical docs with NDA', 'Technical docs without NDA']);
+  assert.equal(deps('MH Ventures').length, 3);
+});
+
+test('Nam and Asad each see the five sends they are holding up', () => {
+  const all = seed.tracker.tasks;
+  const mine = (id) => all.filter((t) => t.owners.includes(id));
+  assert.equal(heldUpBy(mine('nam'), all).length, 5);
+  assert.equal(heldUpBy(mine('pmt0z6mh6'), all).length, 5);
+  const count = (s) => blocking(all.find((t) => t.title === s), all).length;
+  assert.deepEqual([count('Technical docs without NDA'), count('Technical docs with NDA'), count('Lender pool return simulation')], [4, 3, 2]);
+  const b = bucketMine(mine('nam'), TODAY, all);
+  assert.deepEqual(b.holding.map((t) => t.title),
+    ['Technical docs without NDA', 'Technical docs with NDA', 'Lender pool return simulation'], 'biggest hold-up first');
+});
+
+test('finishing the docs frees every send', () => {
+  const all = structuredClone(seed.tracker.tasks);
+  for (const t of all) if (['tt05', 'tt_docs_nda', 'tt_pool_sim', 'tt06'].includes(t.id)) t.status = 'done';
+  const byId = taskIndex(all);
+  const sends = all.filter((t) => t.id.startsWith('tt_send'));
+  assert.ok(sends.every((t) => openBlockers(t, byId).length === 0));
+  const g = blockedByDependency(sends, people, all);
+  assert.equal(g.ready.length, 4, 'marked Blocked with nothing left to wait on');
+  assert.equal(g.external.length, 1, 'Avantis still waits on the venue integration doc');
+});
+
+test('linking the investor dependencies is idempotent', () => {
+  const again = structuredClone(seed.tracker);
+  assert.deepEqual(linkInvestorDeps(again), []);
 });
 
 console.log(`\n${passed} passed${process.exitCode ? ', SOME FAILED' : ''}\n`);
