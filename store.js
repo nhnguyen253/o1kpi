@@ -19,6 +19,7 @@
  * surface a conflict instead of silently clobbering their work.
  */
 import { SUPABASE_URL, SUPABASE_ANON_KEY, isConfigured } from './config.js';
+import { emptyTracker } from './tracker.js';
 
 const LOCAL_KEY = 'o1kpi_local_db_v2';
 const ACTOR_KEY = 'o1kpi_actor';
@@ -62,8 +63,22 @@ function emit(reason) {
  */
 function normalize(db) {
   for (const n of db?.nodes ?? []) delete n.progress;
+  if (db) {
+    // The accountability tracker lives in the same blob, so it shares the
+    // version guard and realtime. Guarantee its shape so the UI never has to
+    // ask whether a list exists. Older clients carry the key through a save
+    // untouched, since they persist the whole blob.
+    const t = (db.tracker ??= emptyTracker());
+    t.categories ??= [];
+    t.projects ??= [];
+    t.tasks ??= [];
+    for (const task of t.tasks) task.owners ??= [];
+  }
   return db;
 }
+
+const trackerIsEmpty = (db) =>
+  !db?.tracker || !(db.tracker.categories.length || db.tracker.projects.length || db.tracker.tasks.length);
 
 async function fetchSeed() {
   const res = await fetch('./data/seed.json', { cache: 'no-store' });
@@ -103,6 +118,17 @@ async function initLocal(reason) {
   if (cached) {
     try {
       store.db = normalize(JSON.parse(cached));
+      // A browser that cached its data before the tracker existed would
+      // otherwise show it empty forever. Borrow the bundled seed's.
+      if (trackerIsEmpty(store.db)) {
+        const seed = await fetchSeed().catch(() => null);
+        if (seed && !trackerIsEmpty(seed)) {
+          store.db.tracker = seed.tracker;
+          for (const c of seed.contributors) {
+            if (!store.db.contributors.some((x) => x.id === c.id)) store.db.contributors.push(c);
+          }
+        }
+      }
       emit('init');
       return store;
     } catch { /* fall through to seed */ }

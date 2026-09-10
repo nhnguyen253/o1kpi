@@ -71,7 +71,12 @@ in a banner. The whole UI is reviewable this way without a backend.
 ```bash
 node rollup.test.mjs      # 30 assertions — the weight and credit arithmetic
 node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
+node tracker.test.mjs     # 23 assertions — the accountability tracker
 ```
+
+`tracker.test.mjs` is mostly date logic, which is where trackers break. It is
+timezone-sensitive, so it is worth running under a couple of zones too:
+`TZ=America/Los_Angeles node tracker.test.mjs`, `TZ=Asia/Singapore …`.
 
 `structure.test.mjs` covers the tricky part of editing the tree: adding a first
 child under a leaf must leave every credit number unchanged, deleting the last
@@ -152,6 +157,40 @@ Nodes with no contributors assigned still hold company share; that share shows
 up as an **Unassigned** row on the Credit tab rather than being silently
 redistributed.
 
+## Accountability tracker
+
+The **Accountability** tab sits alongside the KPI tree, not inside it. The tree
+tracks what work is *worth* and who owns it; the tracker tracks what is *due*
+and whether it happened. Nothing in the credit math reads the tracker.
+
+**Shape.** Category → Project → Task. Each task has a title, one or more
+owners, a due date, a status (Not started / In progress / Blocked / Done), what
+it is blocked by, and its source — where the commitment came from ("Sep 4
+standup", "BAM call"). A category can point at the KPI node it reconciles with;
+the chip on the category opens that node in the tree.
+
+**Views.**
+
+| View | Shows |
+|---|---|
+| **My tasks** | One person's work, by due date: overdue, this week, later, undated. Defaults to whoever is picked in the header's *Who are you?* |
+| **Overdue** | Everything past due across the company, grouped by owner. A shared task appears under each owner. |
+| **Blocked** | Grouped by what it is waiting on. Name a teammate in *Blocked by* and it files under them — that is how cross-team dependencies surface. |
+| **By project** | Every project under its category, or one project. |
+| **Weekly** | *Due* this week; *Shipped* — marked done this week, whenever it was due; *Slipped* — due this week, date passed, not done by then. Work finished late counts as slipped, flagged "done late". |
+
+Filters (owner, category, project, status) and the current view persist per
+browser in `localStorage`. Weeks run Monday to Sunday.
+
+**Undated work is invisible** to Overdue and Weekly by definition, so both say
+how many open tasks have no date. The seed set none — no dates or statuses were
+given, and inventing them would manufacture overdue work against named people.
+
+**Storage.** The tracker lives at `db.tracker` in the same `os_state` blob as
+the tree, so it shares the version guard, realtime and Backup. No schema change.
+Older cached copies of the app carry the key through a save untouched. Task
+edits are written to the change log like node edits.
+
 ## Architecture
 
 | File | Role |
@@ -159,6 +198,8 @@ redistributed.
 | `index.html` | Markup and styles. No logic. |
 | `rollup.js` | Pure weight/credit math. No DOM, no deps, testable in node. |
 | `app.js` | Rendering, the node drawer, the split editor. |
+| `tracker.js` | Accountability tracker logic: filters, overdue, blocked, weekly rollup. No DOM, testable in node. |
+| `tracker-ui.js` | The Accountability tab: views, filters, the task / project / category drawers. |
 | `store.js` | Load/save, auth, realtime, the concurrency guard. |
 | `config.js` | Supabase URL + anon key. |
 | `schema.sql` | Tables, RLS policies, realtime. |
@@ -169,6 +210,8 @@ redistributed.
 | `migrate.mjs` | One-shot v1→v2 schema conversion. Already run; kept for reference. |
 | `restructure.mjs` | One-shot 2026 restructure: quarters plus the Aug 26 subdivisions. Already run; kept for reference. |
 | `structure.test.mjs` | Tests for add / move / delete node. |
+| `tracker.test.mjs` | Tests for the tracker, including dates across timezones and DST. |
+| `tracker-seed.mjs` | One-shot seed for the tracker. Already run; kept for reference. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
 
 **Concurrency.** `os_state` has an integer `version`. A save matches on the

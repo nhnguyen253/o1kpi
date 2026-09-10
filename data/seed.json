@@ -40,6 +40,13 @@
       "role": "Quant, Partnerships",
       "bio": "",
       "contact": ""
+    },
+    {
+      "id": "francis",
+      "name": "Francis",
+      "role": "LFG",
+      "bio": "",
+      "contact": ""
     }
   ],
   "nodes": [
@@ -1080,5 +1087,310 @@
       "type": "contribution",
       "note": "Defined the main user experience flow and frontend design direction."
     }
-  ]
+  ],
+  "tracker": {
+    "categories": [
+      {
+        "id": "tc_credit",
+        "title": "Credit model",
+        "kpi_node_id": "risk"
+      },
+      {
+        "id": "tc_fundraise",
+        "title": "Fundraise",
+        "kpi_node_id": "raise"
+      },
+      {
+        "id": "tc_traders",
+        "title": "Trader acquisition",
+        "kpi_node_id": "traders"
+      },
+      {
+        "id": "tc_partners",
+        "title": "Partnerships",
+        "kpi_node_id": "partnerships"
+      },
+      {
+        "id": "tc_company",
+        "title": "Company",
+        "kpi_node_id": "ops"
+      }
+    ],
+    "projects": [
+      {
+        "id": "tp_clusters",
+        "category_id": "tc_credit",
+        "title": "Copy trading clusters"
+      },
+      {
+        "id": "tp_livescore",
+        "category_id": "tc_credit",
+        "title": "Live scoring"
+      },
+      {
+        "id": "tp_techsync",
+        "category_id": "tc_credit",
+        "title": "Tech sync"
+      },
+      {
+        "id": "tp_investor",
+        "category_id": "tc_fundraise",
+        "title": "Investor materials"
+      },
+      {
+        "id": "tp_outreach",
+        "category_id": "tc_traders",
+        "title": "Outreach"
+      },
+      {
+        "id": "tp_venues",
+        "category_id": "tc_partners",
+        "title": "Venue partnerships"
+      },
+      {
+        "id": "tp_lfg",
+        "category_id": "tc_partners",
+        "title": "LFG"
+      },
+      {
+        "id": "tp_presence",
+        "category_id": "tc_company",
+        "title": "Presence"
+      },
+      {
+        "id": "tp_os",
+        "category_id": "tc_company",
+        "title": "Internal OS"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "tt01",
+        "project_id": "tp_clusters",
+        "title": "Update on cluster progress",
+        "owners": [
+          "pmt0z6mh6"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt02",
+        "project_id": "tp_livescore",
+        "title": "Update live scoring",
+        "owners": [
+          "nam"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt03",
+        "project_id": "tp_livescore",
+        "title": "Update frontend visuals",
+        "owners": [
+          "nam"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt04",
+        "project_id": "tp_techsync",
+        "title": "Sync on tech",
+        "owners": [
+          "pmt0z6mh6",
+          "nam"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt05",
+        "project_id": "tp_investor",
+        "title": "Technical documents to send to investors",
+        "owners": [
+          "pmt0z6mh6",
+          "nam"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt06",
+        "project_id": "tp_investor",
+        "title": "NDA",
+        "owners": [
+          "pmt0z6mh6"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt07",
+        "project_id": "tp_outreach",
+        "title": "Outreach draft to Concept211 (KOL and trader)",
+        "owners": [
+          "pmt0z6mh6"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt08",
+        "project_id": "tp_outreach",
+        "title": "Outreach to traders",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt09",
+        "project_id": "tp_outreach",
+        "title": "Organise outreach system",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt10",
+        "project_id": "tp_outreach",
+        "title": "Create outreach target doc for Francis and Egide",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt11",
+        "project_id": "tp_venues",
+        "title": "Follow up with Aptos Labs",
+        "owners": [
+          "francis"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt12",
+        "project_id": "tp_venues",
+        "title": "Follow up with Aster",
+        "owners": [
+          "francis"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt13",
+        "project_id": "tp_lfg",
+        "title": "Sync with LFG team on pipeline",
+        "owners": [
+          "francis"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt14",
+        "project_id": "tp_presence",
+        "title": "Create X account",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt15",
+        "project_id": "tp_os",
+        "title": "Work on KPI tree",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      }
+    ]
+  }
 }

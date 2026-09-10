@@ -848,6 +848,254 @@ textarea {
   .credit-row, .head-row { grid-template-columns:112px 1fr 66px 66px; }
   .split-row { grid-template-columns:1fr 78px 52px; }
 }
+
+/* ---------------------------------------------------------- accountability tracker */
+.tk-tabs {
+  display:flex;
+  gap:4px;
+  padding:4px;
+  margin-bottom:12px;
+  width:max-content;
+  max-width:100%;
+  overflow-x:auto;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.tk-tabs button {
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  padding:8px 12px;
+  border-radius:9px;
+  white-space:nowrap;
+}
+.tk-tabs button:hover { color:var(--text); }
+.tk-tabs button.active {
+  background:var(--panel-2);
+  color:var(--text);
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+.tk-tabs .n {
+  margin-left:7px;
+  padding:1px 7px;
+  border-radius:999px;
+  background:var(--panel-3);
+  color:var(--muted);
+  font-size:10px;
+  font-variant-numeric:tabular-nums;
+}
+.tk-tabs .n.alert { background:rgba(239,107,115,.14); color:#ef9aa0; }
+.tk-tabs .n.warn { background:rgba(224,168,74,.14); color:#e5c07b; }
+
+.tk-filters {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px 12px;
+  margin-bottom:14px;
+}
+.tk-filters label {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--muted);
+  font-size:11px;
+}
+.tk-filters select {
+  width:auto;
+  min-width:124px;
+  padding:7px 10px;
+  font-size:12px;
+}
+.tk-spacer { flex:1; }
+.tk-clear {
+  border:0;
+  background:none;
+  color:var(--muted);
+  font-size:11px;
+  text-decoration:underline;
+  text-underline-offset:2px;
+  padding:4px;
+}
+.tk-clear:hover { color:var(--text); }
+.tk-week { display:flex; align-items:center; gap:8px; }
+.tk-week b { font-size:13px; font-variant-numeric:tabular-nums; }
+.btn.tk-mini { padding:5px 9px; font-size:11px; }
+
+.tk-stats {
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:10px;
+  margin-bottom:14px;
+}
+.tk-stat {
+  padding:11px 14px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+}
+.tk-stat .label { color:var(--muted); font-size:11px; }
+.tk-stat .value {
+  margin-top:3px;
+  font-size:22px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  font-variant-numeric:tabular-nums;
+}
+.tk-stat.alert { border-color:#5c2d31; }
+.tk-stat.alert .value { color:#ef9aa0; }
+
+.tk-card + .tk-card, .tk-cols + *, .card + .tk-callout { margin-top:14px; }
+.tk-group + .tk-group { margin-top:20px; }
+.tk-group-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:0 4px 8px;
+  border-bottom:1px solid var(--line);
+}
+.tk-group-head h4 {
+  margin:0;
+  font-size:12px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.tk-group-head.alert h4 { color:#ef9aa0; }
+.tk-group-head.warn h4 { color:#e5c07b; }
+.tk-group-side { display:flex; align-items:center; gap:10px; }
+.tk-group-side .hint { color:var(--muted); font-size:11px; }
+.tk-count {
+  color:var(--muted);
+  font-size:11px;
+  font-weight:400;
+  font-variant-numeric:tabular-nums;
+}
+
+.tk-row {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto 128px;
+  gap:12px;
+  align-items:center;
+  padding:10px 6px;
+  border-bottom:1px solid var(--line);
+  cursor:pointer;
+}
+.tk-row:last-child { border-bottom:0; }
+.tk-row:hover { background:rgba(23,28,34,.7); }
+.tk-row:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; border-radius:8px; }
+.tk-main { min-width:0; }
+.tk-title { font-size:13px; overflow-wrap:anywhere; }
+.tk-row.is-done .tk-title {
+  color:var(--muted);
+  text-decoration:line-through;
+  text-decoration-color:rgba(149,160,173,.45);
+}
+.tk-meta {
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.tk-blocked { color:#e5c07b; }
+.tk-owners {
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+  gap:4px;
+}
+.tk-owners .chip { font-size:11px; }
+.tk-due, .tk-due-inline {
+  color:var(--muted);
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
+.tk-due { text-align:right; }
+.tk-due.overdue, .tk-due-inline.overdue { color:#ef9aa0; font-weight:600; }
+.tk-due.soon, .tk-due-inline.soon { color:var(--text); }
+.tk-due.none { opacity:.65; }
+
+.tk-row.compact { grid-template-columns:auto minmax(0,1fr); }
+.tk-row.compact .tk-meta { white-space:normal; }
+
+/* status pill: a real <select>, so it stays keyboard- and screen-reader-friendly */
+.tk-status {
+  -webkit-appearance:none;
+  appearance:none;
+  width:auto;
+  min-width:104px;
+  padding:4px 22px 4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2395a0ad' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 8px center;
+  background-size:8px;
+  cursor:pointer;
+}
+.tk-status option { background:#11151a; color:var(--text); }
+.tk-status.s-not_started { background-color:var(--panel-2); color:var(--muted); border-color:var(--line); }
+.tk-status.s-in_progress { background-color:rgba(123,140,255,.14); color:#cad0ff; border-color:rgba(123,140,255,.32); }
+.tk-status.s-blocked { background-color:rgba(224,168,74,.12); color:#e5c07b; border-color:#5a4520; }
+.tk-status.s-done { background-color:rgba(90,200,140,.12); color:#7fd7a4; border-color:#2f5d43; }
+
+.tk-tag {
+  padding:1px 7px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  font-size:10px;
+}
+.tk-tag.late { border-color:#5a4520; color:#e5c07b; }
+.tk-tag.open { border-color:#5c2d31; color:#ef9aa0; }
+
+.tk-cat-head {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:14px;
+}
+.tk-link {
+  border:0;
+  background:none;
+  color:inherit;
+  padding:0;
+  font:inherit;
+  text-align:left;
+}
+.tk-link:hover { text-decoration:underline; text-underline-offset:3px; }
+.tk-cat-title { font-size:15px; font-weight:650; }
+button.chip.tk-kpi { font:inherit; font-size:10px; }
+button.chip.tk-kpi:hover { border-color:rgba(123,140,255,.45); color:#e3e6ff; }
+
+.tk-cols {
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:14px;
+  align-items:start;
+}
+.tk-alert-text { color:#ef9aa0; }
+.tk-none { padding:12px 6px 4px; color:var(--muted); font-size:12px; }
+.tk-foot { padding-top:12px; text-align:center; }
+.tk-empty { padding:34px 16px; text-align:center; color:var(--muted); font-size:12px; }
+.tk-empty b { display:block; margin-bottom:6px; color:var(--text); font-size:14px; }
+.tk-empty-action { margin-top:14px; }
+
+@media (max-width: 1024px) {
+  .tk-cols { grid-template-columns:1fr; }
+}
+@media (max-width: 860px) {
+  .tk-stats { grid-template-columns:repeat(2, minmax(0,1fr)); }
+  .tk-row { grid-template-columns:auto minmax(0,1fr); }
+  .tk-owners, .tk-due { grid-column:2; justify-content:flex-start; text-align:left; }
+  .tk-group-side .hint { display:none; }
+}
 </style>
 </head>
 <body>
@@ -857,6 +1105,7 @@ textarea {
     <div class="nav">
       <button class="active" data-view="dashboard">Dashboard</button>
       <button data-view="tree">KPI Tree</button>
+      <button data-view="tracker">Accountability</button>
       <button data-view="credit">Credit</button>
       <button data-view="contributors">Contributors</button>
       <button data-view="history">Notes &amp; History</button>
@@ -923,6 +1172,23 @@ textarea {
             </div>
           </div>
         </div>
+      </section>
+
+      <section id="tracker" class="view">
+        <div class="section-head">
+          <div>
+            <h2>Accountability</h2>
+            <p>What is due, and whether it happened. The KPI tree tracks what work is worth; this tracks what was promised.</p>
+          </div>
+          <div class="actions">
+            <button class="btn" data-tk-new-category>+ Category</button>
+            <button class="btn" data-tk-new-project="">+ Project</button>
+            <button class="btn primary" data-tk-new-task="">+ Task</button>
+          </div>
+        </div>
+        <div class="tk-tabs" id="tkTabs" role="tablist"></div>
+        <div class="tk-filters" id="tkFilters"></div>
+        <div id="tkBody"></div>
       </section>
 
       <section id="credit" class="view">

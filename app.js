@@ -10,6 +10,7 @@ import {
   validateSplit, normalizeSplit, evenSplit, pathTo,
 } from './rollup.js';
 import { store, init, save, setActor, onChange, recentAudit } from './store.js';
+import { mountTracker } from './tracker-ui.js';
 
 // ---------------------------------------------------------------- helpers
 
@@ -862,6 +863,7 @@ function renderAll() {
   renderCredit();
   renderPeople();
   renderHistory();
+  tracker.render();
 }
 
 // ---------------------------------------------------------------- nav + tree nav
@@ -872,18 +874,36 @@ const VIEW_TITLES = {
   credit: 'Credit',
   contributors: 'Contributors',
   history: 'Notes & History',
+  tracker: 'Accountability',
 };
+
+function showView(name) {
+  if (!VIEW_TITLES[name]) name = 'dashboard';
+  document.querySelectorAll('.nav button').forEach((x) => x.classList.toggle('active', x.dataset.view === name));
+  document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === name));
+  $('pageTitle').textContent = VIEW_TITLES[name];
+  if (name === 'tree') centerRoot();
+  setTimeout(updateDockVisibility, 0);
+}
 
 document.querySelectorAll('.nav button').forEach((btn) => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav button').forEach((x) => x.classList.remove('active'));
-    btn.classList.add('active');
-    document.querySelectorAll('.view').forEach((v) => v.classList.remove('active'));
-    $(btn.dataset.view).classList.add('active');
-    $('pageTitle').textContent = VIEW_TITLES[btn.dataset.view];
-    if (btn.dataset.view === 'tree') centerRoot();
-    setTimeout(updateDockVisibility, 0);
+    showView(btn.dataset.view);
+    // replaceState, not location.hash: no history entry per click, no scroll jump.
+    history.replaceState(null, '', `#${btn.dataset.view}`);
   });
+});
+window.addEventListener('hashchange', () => showView(location.hash.slice(1)));
+
+// The accountability tracker is its own module; it borrows the drawer and banner.
+const tracker = mountTracker({
+  esc, banner, openDrawer, closeDrawer,
+  rerender: () => renderAll(),
+  showKpiNode: (id) => {
+    showView('tree');
+    history.replaceState(null, '', '#tree');
+    if (nodeById(id)) openNode(id);
+  },
 });
 
 $('closeDrawer').onclick = closeDrawer;
@@ -995,6 +1015,7 @@ onChange(async (reason) => {
   }
   if (reason === 'actor') {
     renderChrome();
+    tracker.render();
   }
 });
 
@@ -1002,6 +1023,7 @@ onChange(async (reason) => {
   try {
     await init();
     renderAll();
+    if (location.hash) showView(location.hash.slice(1));
     if (store.mode === 'supabase') {
       auditRows = await recentAudit();
       renderHistory();
