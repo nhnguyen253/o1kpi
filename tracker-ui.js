@@ -350,15 +350,18 @@ export function mountTracker(h) {
         '<button type="button" class="btn primary" data-tk-new-category>+ Category</button>');
     }
     const f = filtersFor('project');
-    // Only an owner or a specific status narrows the structure. The default
-    // "Open" must not: it would hide every category that has no projects yet,
-    // and with it the only "+ Project" button for that category.
+    // An owner or a specific status hides projects with nothing matching. It
+    // never hides a category: every category shows, however empty, because
+    // that is where its "+ Project" button lives. Only picking a category or a
+    // project narrows the categories shown.
     const narrowed = !!(f.owner || (f.status && f.status !== 'open'));
     const cards = [];
 
     for (const c of t.categories.filter((x) => !prefs.category || x.id === prefs.category)) {
+      const projs = projectsIn(t, c.id).filter((x) => !prefs.project || x.id === prefs.project);
+      if (prefs.project && !projs.length) continue;      // one project picked: just its category
       const blocks = [];
-      for (const p of projectsIn(t, c.id).filter((x) => !prefs.project || x.id === prefs.project)) {
+      for (const p of projs) {
         const list = sortByDue(filterTasks(t, { owner: f.owner, status: f.status, project: p.id }));
         if (!list.length && narrowed) continue;      // filtering: only projects with matches
         const inProj = t.tasks.filter((x) => x.project_id === p.id);
@@ -371,7 +374,7 @@ export function mountTracker(h) {
             : `<div class="tk-none">No ${f.status === 'open' ? 'open ' : ''}tasks.</div>`,
           { action: `<button type="button" class="btn tk-mini" data-tk-new-task="${esc(p.id)}">+ Task</button>` }));
       }
-      if (!blocks.length && (narrowed || prefs.project)) continue;
+      const none = projectsIn(t, c.id).length ? 'No matching tasks.' : 'No projects yet.';
       const kpi = c.kpi_node_id ? store.db.nodes.find((n) => n.id === c.kpi_node_id) : null;
       cards.push(`<div class="card tk-card">
         <div class="tk-cat-head">
@@ -380,7 +383,7 @@ export function mountTracker(h) {
           <span class="tk-spacer"></span>
           <button type="button" class="btn tk-mini" data-tk-new-project="${esc(c.id)}">+ Project</button>
         </div>
-        ${blocks.join('') || '<div class="tk-none">No projects yet.</div>'}
+        ${blocks.join('') || `<div class="tk-none">${none}</div>`}
       </div>`);
     }
     return cards.join('') || emptyHtml('Nothing matches these filters');

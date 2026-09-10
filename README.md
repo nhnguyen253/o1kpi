@@ -71,7 +71,7 @@ in a banner. The whole UI is reviewable this way without a backend.
 ```bash
 node rollup.test.mjs      # 30 assertions — the weight and credit arithmetic
 node structure.test.mjs   #  9 assertions — adding, moving and deleting nodes
-node tracker.test.mjs     # 25 assertions — the accountability tracker
+node tracker.test.mjs     # 29 assertions — the accountability tracker
 ```
 
 `tracker.test.mjs` is mostly date logic, which is where trackers break. It is
@@ -218,6 +218,7 @@ edits are written to the change log like node edits.
 | `tracker.test.mjs` | Tests for the tracker, including dates across timezones and DST. |
 | `tracker-seed.mjs` | One-shot seed for the tracker. Already run; kept for reference. |
 | `tracker-recategorise.mjs` | One-shot: the tracker's own categories, unlinked from the KPI tree. Already run; kept for reference. |
+| `tracker-investors.mjs` | One-shot: investor docs and the sends blocked on them; Tech sync to Marketplace. Already run; kept for reference. |
 | `vendor/supabase.umd.js` | Pinned Supabase client (v2.58.0), vendored so the page has no CDN dependency. |
 
 **Concurrency.** `os_state` has an integer `version`. A save matches on the

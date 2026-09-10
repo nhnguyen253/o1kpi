@@ -1149,7 +1149,7 @@
       },
       {
         "id": "tp_techsync",
-        "category_id": "tc_credit",
+        "category_id": "tc_marketplace",
         "title": "Tech sync"
       },
       {
@@ -1181,6 +1181,16 @@
         "id": "tp_os",
         "category_id": "tc_company",
         "title": "Internal OS"
+      },
+      {
+        "id": "tp_vc_outreach",
+        "category_id": "tc_fundraise",
+        "title": "Outreach"
+      },
+      {
+        "id": "tp_pool_outreach",
+        "category_id": "tc_pool",
+        "title": "Outreach"
       }
     ],
     "tasks": [
@@ -1248,7 +1258,7 @@
       {
         "id": "tt05",
         "project_id": "tp_investor",
-        "title": "Technical documents to send to investors",
+        "title": "Technical docs without NDA",
         "owners": [
           "pmt0z6mh6",
           "nam"
@@ -1406,6 +1416,112 @@
         "due_date": "",
         "status": "not_started",
         "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_docs_nda",
+        "project_id": "tp_investor",
+        "title": "Technical docs with NDA",
+        "owners": [
+          "pmt0z6mh6",
+          "nam"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_pool_sim",
+        "project_id": "tp_investor",
+        "title": "Lender pool return simulation",
+        "owners": [
+          "nam"
+        ],
+        "due_date": "",
+        "status": "not_started",
+        "blocked_by": "",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_send1",
+        "project_id": "tp_vc_outreach",
+        "title": "Proxima Ventures: follow up with technical docs (non-NDA) and 1 pager",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "blocked",
+        "blocked_by": "Technical docs without NDA (Asad, Nam)",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_send2",
+        "project_id": "tp_venues",
+        "title": "Send Avantis technical docs and venue integration doc",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "blocked",
+        "blocked_by": "Technical docs (Asad, Nam) and a venue integration doc",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_send3",
+        "project_id": "tp_pool_outreach",
+        "title": "Send Galaxy all technical docs and lender doc",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "blocked",
+        "blocked_by": "All technical docs, with and without NDA (Asad, Nam)",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_send4",
+        "project_id": "tp_pool_outreach",
+        "title": "Send DWF Ventures all technical docs, lender return simulation, lender doc and model technical doc (non-NDA)",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "blocked",
+        "blocked_by": "All technical docs (Asad, Nam) and the lender pool return simulation (Nam)",
+        "source": "",
+        "created_at": "2026-09-10T12:00:00.000Z",
+        "updated_at": "2026-09-10T12:00:00.000Z",
+        "done_at": ""
+      },
+      {
+        "id": "tt_send5",
+        "project_id": "tp_pool_outreach",
+        "title": "Send MH Ventures pitch deck, lender doc, technical docs, pool return simulation and NDA",
+        "owners": [
+          "ethan"
+        ],
+        "due_date": "",
+        "status": "blocked",
+        "blocked_by": "Technical docs with NDA (Asad, Nam), the lender pool return simulation (Nam) and the NDA",
         "source": "",
         "created_at": "2026-09-10T12:00:00.000Z",
         "updated_at": "2026-09-10T12:00:00.000Z",

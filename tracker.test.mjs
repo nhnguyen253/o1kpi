@@ -13,6 +13,7 @@ import {
   weeklyRollup, weeklyByOwner, validateTracker, STATUSES,
 } from './tracker.js';
 import { recategorise } from './tracker-recategorise.mjs';
+import { applyInvestorPlan } from './tracker-investors.mjs';
 
 let passed = 0;
 const test = (name, fn) => {
@@ -247,25 +248,62 @@ test('the seed has the categories, projects and tasks that were specified', () =
     'Credit Model', 'Marketplace', 'Pool Investors', 'VC Investors', 'Trader Acquisition',
     'Bot Building Partnerships', 'Frontend Terminals', 'Venue Partnerships', 'Company',
   ]);
-  assert.equal(tr.projects.length, 9);
-  assert.equal(tr.tasks.length, 15);
+  assert.equal(tr.projects.length, 11);
+  assert.equal(tr.tasks.length, 22);
   const owned = (id) => filterTasks(tr, { owner: id }).length;
-  assert.deepEqual([owned('ethan'), owned('pmt0z6mh6'), owned('nam'), owned('francis')], [5, 5, 4, 3]);
+  assert.deepEqual([owned('ethan'), owned('pmt0z6mh6'), owned('nam'), owned('francis')], [10, 6, 6, 3]);
 });
 
 test('shared tasks carry both owners', () => {
-  for (const title of ['Sync on tech', 'Technical documents to send to investors']) {
+  for (const title of ['Sync on tech', 'Technical docs without NDA', 'Technical docs with NDA']) {
     const t = seed.tracker.tasks.find((x) => x.title === title);
     assert.deepEqual([...t.owners].sort(), ['nam', 'pmt0z6mh6'], title);
   }
 });
 
-test('the seed invents nothing: no dates, no statuses, no sources', () => {
+test('the seed invents nothing: no dates, no sources, and only declared blocks', () => {
   for (const t of seed.tracker.tasks) {
     assert.equal(t.due_date, '', `${t.title} has an invented due date`);
-    assert.equal(t.status, 'not_started', `${t.title} has an invented status`);
     assert.equal(t.source, '', `${t.title} has an invented source`);
+    assert.ok(['not_started', 'blocked'].includes(t.status), `${t.title} has an invented status`);
+    if (t.status === 'blocked') assert.ok(t.blocked_by.trim(), `${t.title} is blocked without saying on what`);
   }
+});
+
+console.log('\ninvestor docs');
+
+test('Tech sync is marketplace work, not the credit model', () => {
+  const p = seed.tracker.projects.find((x) => x.title === 'Tech sync');
+  assert.equal(seed.tracker.categories.find((c) => c.id === p.category_id).title, 'Marketplace');
+});
+
+test('every investor send is blocked on the docs, and waits on the people who own them', () => {
+  const sends = seed.tracker.tasks.filter((t) => /^(Send |Proxima)/.test(t.title));
+  assert.equal(sends.length, 5);
+  for (const t of sends) {
+    assert.equal(t.status, 'blocked', t.title);
+    assert.deepEqual(t.owners, ['ethan'], t.title);
+  }
+  const g = blockedByDependency(seed.tracker.tasks, [
+    { id: 'ethan', name: 'Ethan' }, { id: 'pmt0z6mh6', name: 'Asad' }, { id: 'nam', name: 'Nam' },
+  ]);
+  const waiting = Object.fromEntries(g.people.map((p) => [p.contributor_id, p.tasks.length]));
+  assert.deepEqual(waiting, { pmt0z6mh6: 5, nam: 5 }, 'the Blocked view routes all five to the doc owners');
+});
+
+test('dual VC-and-pool investors file under Pool Investors', () => {
+  const { categoryOf } = (() => { const cat = new Map(seed.tracker.categories.map((c) => [c.id, c]));
+    const proj = new Map(seed.tracker.projects.map((p) => [p.id, p]));
+    return { categoryOf: (t) => cat.get(proj.get(t.project_id).category_id).title }; })();
+  const where = (s) => categoryOf(seed.tracker.tasks.find((t) => t.title.includes(s)));
+  assert.deepEqual(['Proxima', 'Galaxy', 'DWF', 'MH Ventures', 'Avantis'].map(where),
+    ['VC Investors', 'Pool Investors', 'Pool Investors', 'Pool Investors', 'Venue Partnerships']);
+});
+
+test('the investor plan is idempotent', () => {
+  const again = structuredClone(seed.tracker);
+  assert.deepEqual(applyInvestorPlan(again), []);
+  assert.deepEqual(again, seed.tracker);
 });
 
 test('no category links into the KPI tree — they are different things', () => {
