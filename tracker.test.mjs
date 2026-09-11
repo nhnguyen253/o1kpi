@@ -243,9 +243,9 @@ test('the seed has the categories, projects and tasks that were specified', () =
     'Bot Building Partnerships', 'Frontend Terminals', 'Venue Partnerships', 'Company',
   ]);
   assert.equal(tr.projects.length, 11);
-  assert.equal(tr.tasks.length, 22);
+  assert.equal(tr.tasks.length, 23);
   const owned = (id) => filterTasks(tr, { owner: id }).length;
-  assert.deepEqual([owned('ethan'), owned('pmt0z6mh6'), owned('nam'), owned('francis')], [10, 6, 6, 3]);
+  assert.deepEqual([owned('ethan'), owned('pmt0z6mh6'), owned('nam'), owned('francis')], [11, 6, 6, 3]);
 });
 
 test('shared tasks carry both owners', () => {
@@ -274,14 +274,14 @@ test('Tech sync is marketplace work, not the credit model', () => {
 
 test('every investor send is blocked on the docs, and waits on the people who own them', () => {
   const sends = seed.tracker.tasks.filter((t) => /^(Send |Proxima)/.test(t.title));
-  assert.equal(sends.length, 5);
+  assert.equal(sends.length, 6);
   for (const t of sends) {
     assert.equal(t.status, 'blocked', t.title);
     assert.deepEqual(t.owners, ['ethan'], t.title);
   }
   const g = blockedByDependency(seed.tracker.tasks);
   const waiting = Object.fromEntries(g.people.map((p) => [p.contributor_id, p.tasks.length]));
-  assert.deepEqual(waiting, { pmt0z6mh6: 5, nam: 5 }, 'the Blocked view routes all five to the doc owners');
+  assert.deepEqual(waiting, { pmt0z6mh6: 6, nam: 6 }, 'the Blocked view routes all six to the doc owners');
 });
 
 test('dual VC-and-pool investors file under Pool Investors', () => {
@@ -289,8 +289,8 @@ test('dual VC-and-pool investors file under Pool Investors', () => {
     const proj = new Map(seed.tracker.projects.map((p) => [p.id, p]));
     return { categoryOf: (t) => cat.get(proj.get(t.project_id).category_id).title }; })();
   const where = (s) => categoryOf(seed.tracker.tasks.find((t) => t.title.includes(s)));
-  assert.deepEqual(['Proxima', 'Galaxy', 'DWF', 'MH Ventures', 'Avantis'].map(where),
-    ['VC Investors', 'Pool Investors', 'Pool Investors', 'Pool Investors', 'Venue Partnerships']);
+  assert.deepEqual(['Proxima', 'Galaxy', 'DWF', 'MH Ventures', 'Block Asset Management', 'Avantis'].map(where),
+    ['VC Investors', 'Pool Investors', 'Pool Investors', 'Pool Investors', 'Pool Investors', 'Venue Partnerships']);
 });
 
 test('the investor plan is idempotent', () => {
@@ -432,25 +432,26 @@ test('every investor send links the doc tasks it needs', () => {
   assert.deepEqual(deps('Galaxy'), ['Technical docs with NDA', 'Technical docs without NDA']);
   assert.deepEqual(deps('DWF'), ['Lender pool return simulation', 'Technical docs with NDA', 'Technical docs without NDA']);
   assert.equal(deps('MH Ventures').length, 3);
+  assert.deepEqual(deps('Block Asset Management'), ['Lender pool return simulation', 'Technical docs without NDA']);
 });
 
-test('Nam and Asad each see the five sends they are holding up', () => {
+test('Nam and Asad each see the six sends they are holding up', () => {
   const all = seed.tracker.tasks;
   const mine = (id) => all.filter((t) => t.owners.includes(id));
-  assert.equal(heldUpBy(mine('nam'), all).length, 5);
-  assert.equal(heldUpBy(mine('pmt0z6mh6'), all).length, 5);
+  assert.equal(heldUpBy(mine('nam'), all).length, 6);
+  assert.equal(heldUpBy(mine('pmt0z6mh6'), all).length, 6);
   const count = (s) => blocking(all.find((t) => t.title === s), all).length;
-  assert.deepEqual([count('Technical docs without NDA'), count('Technical docs with NDA'), count('Lender pool return simulation')], [4, 3, 2]);
+  assert.deepEqual([count('Technical docs without NDA'), count('Technical docs with NDA'), count('Lender pool return simulation')], [5, 3, 3]);
   const b = bucketMine(mine('nam'), TODAY, all);
   assert.deepEqual(b.holding.map((t) => t.title),
-    ['Technical docs without NDA', 'Technical docs with NDA', 'Lender pool return simulation'], 'biggest hold-up first');
+    ['Technical docs without NDA', 'Lender pool return simulation', 'Technical docs with NDA'], 'biggest hold-up first, ties by title');
 });
 
 test('finishing the docs frees every send, automatically', () => {
   const tr = structuredClone(seed.tracker);
   for (const t of tr.tasks) if (['tt05', 'tt_docs_nda', 'tt_pool_sim', 'tt06'].includes(t.id)) applyStatus(t, 'done');
   const moved = syncBlocked(tr);
-  assert.equal(moved.length, 5, 'all five sends released');
+  assert.equal(moved.length, 6, 'all six sends released');
   assert.ok(tr.tasks.filter((t) => t.id.startsWith('tt_send')).every((t) => t.status === 'not_started'));
   const g = blockedByDependency(tr.tasks);
   assert.equal(g.people.length + g.unexplained.length, 0, 'nothing left blocked');

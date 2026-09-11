@@ -1570,6 +1570,25 @@
           "tt06"
         ],
         "status_before_block": ""
+      },
+      {
+        "id": "tt_send6",
+        "project_id": "tp_pool_outreach",
+        "owners": [
+          "ethan"
+        ],
+        "title": "Send Block Asset Management technical docs (non-NDA) and lender pool return simulation",
+        "due_date": "",
+        "status": "blocked",
+        "status_before_block": "not_started",
+        "source": "",
+        "blocked_by_tasks": [
+          "tt05",
+          "tt_pool_sim"
+        ],
+        "created_at": "2026-09-11T12:00:00.000Z",
+        "updated_at": "2026-09-11T12:00:00.000Z",
+        "done_at": ""
       }
     ]
   }
